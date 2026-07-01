@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, TextInput,
   TouchableOpacity, Platform, Keyboard, Alert, Dimensions,
 } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { MessageBubble } from "../../components/MessageBubble";
 import { getGroupChatHistory } from "../../services/chat.api";
 import api from "../../services/api";
@@ -261,7 +261,7 @@ export function GroupChatScreen({ route, navigation }: any) {
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle}>💬 临时会话</Text>
+          <Text style={styles.headerTitle}>同游会话</Text>
           {readOnly && <Text style={styles.readOnlyBadge}>只读</Text>}
         </View>
       </View>
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   backBtn: { paddingHorizontal: spacing.xs },
   backText: { ...typography.h2, color: colors.primary },
   headerInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  headerTitle: { ...typography.bodyBold, color: colors.textPrimary },
+  headerTitle: { fontFamily: HAND, fontSize: 20, color: colors.ink },
   readOnlyBadge: {
     ...typography.small, color: colors.warning, backgroundColor: colors.warning + "20",
     paddingHorizontal: spacing.sm, paddingVertical: 1, borderRadius: borderRadius.sm, overflow: "hidden",

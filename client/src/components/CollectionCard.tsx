@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../theme";
+import { colors, HAND, typography } from "../theme";
 import { RARITY_COLORS } from "../utils/constants";
 import { fixImageUrl } from "../services/api";
+import { Tape } from "../theme/whaleKit";
 
 interface CollectionCardProps {
   name: string;
@@ -12,129 +13,71 @@ interface CollectionCardProps {
   count: number;
   onPress?: () => void;
   disabled?: boolean;
+  rotate?: number;      // 微旋转（手帐拍立得感），由 Gallery 逐个传入
+  tapeColor?: string;   // 和纸胶带颜色
 }
 
-export function CollectionCard({ name, imageUrl, thumbnailUrl, rarity, count, onPress, disabled }: CollectionCardProps) {
+export function CollectionCard({ name, imageUrl, thumbnailUrl, rarity, count, onPress, disabled, rotate = 0, tapeColor }: CollectionCardProps) {
   const rarityColor = RARITY_COLORS[rarity] || "#999";
-  // 缩略图加载失败时降级为原图（兼容旧图片无缩略图的情况）
+  // 缩略图加载失败时降级为原图（兼容旧图片无缩略图）
   const [thumbFailed, setThumbFailed] = useState(false);
   const displayUrl = (!thumbFailed && thumbnailUrl) ? thumbnailUrl : imageUrl;
 
   const card = (
-    <View style={[styles.card, { borderColor: rarityColor + "40" }]}>
+    <View style={[styles.card, { transform: [{ rotate: `${rotate}deg` }] }]}>
+      {/* 和纸胶带 */}
+      <Tape color={tapeColor || colors.secondary} style={{ top: -7, left: "50%", marginLeft: -22, transform: [{ rotate: "-4deg" }] }} />
       {/* 数量角标 */}
       <View style={[styles.countBadge, { backgroundColor: rarityColor }]}>
-        <Text style={styles.countText}>x{count}</Text>
+        <Text style={styles.countText}>×{count}</Text>
       </View>
-
-      {/* 图片 — 优先用缩略图快速展示 */}
+      {/* 图片（拍立得相纸窗口） */}
       <View style={styles.imageWrap}>
         {displayUrl ? (
-          <Image
-            source={{ uri: fixImageUrl(displayUrl) }}
-            style={styles.image}
-            resizeMode="contain"
-            onError={() => setThumbFailed(true)}
-          />
+          <Image source={{ uri: fixImageUrl(displayUrl) }} style={styles.image} resizeMode="contain" onError={() => setThumbFailed(true)} />
         ) : (
-          <Text style={styles.placeholderEmoji}>🎁</Text>
+          <Text style={styles.placeholder}>🐚</Text>
         )}
       </View>
-
-      {/* 名称 */}
-      <Text style={styles.name} numberOfLines={2}>
-        {name}
-      </Text>
-
-      {/* 稀有度 */}
-      <View style={[styles.rarityLine, { backgroundColor: rarityColor + "20" }]}>
-        <View style={[styles.rarityDot, { backgroundColor: rarityColor }]} />
-        <Text style={[styles.rarityText, { color: rarityColor }]}>{rarity}</Text>
-      </View>
+      {/* 名称（手写） */}
+      <Text style={styles.name} numberOfLines={1}>{name}</Text>
     </View>
   );
 
   if (onPress && !disabled) {
-    return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.touchable}>
-        {card}
-      </TouchableOpacity>
-    );
+    return <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.touchable}>{card}</TouchableOpacity>;
   }
-
   return <View style={styles.touchable}>{card}</View>;
 }
 
 const styles = StyleSheet.create({
-  touchable: {
-    width: "31%",
-    marginBottom: spacing.sm,
-  },
+  touchable: { width: "31%", marginBottom: 14 },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1.5,
-    padding: spacing.sm,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 2,
+    paddingHorizontal: 5,
+    paddingTop: 8,
+    paddingBottom: 7,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  countBadge: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    zIndex: 1,
-    paddingHorizontal: 7,
-    paddingVertical: 1,
-    borderRadius: 10,
-  },
-  countText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#FFF",
-  },
+  countBadge: { position: "absolute", top: 4, right: 5, zIndex: 2, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 999 },
+  countText: { fontSize: 9, fontWeight: "800", color: "#FFF" },
   imageWrap: {
     width: "100%",
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.sm,
-    marginBottom: spacing.xs,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
     overflow: "hidden",
   },
-  image: {
-    width: "80%",
-    height: "80%",
-  },
-  placeholderEmoji: {
-    fontSize: 36,
-  },
-  name: {
-    ...typography.small,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    textAlign: "center",
-    marginBottom: spacing.xs,
-  },
-  rarityLine: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  rarityDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 4,
-  },
-  rarityText: {
-    fontSize: 10,
-    fontWeight: "700",
-  },
+  image: { width: "82%", height: "82%" },
+  placeholder: { fontSize: 32 },
+  name: { ...typography.small, fontFamily: HAND, fontSize: 14, color: colors.ink, textAlign: "center", marginTop: 3 },
 });

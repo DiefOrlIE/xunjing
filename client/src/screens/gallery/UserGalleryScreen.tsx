@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, SectionList, ActivityIndicator } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { CollectionCard } from "../../components/CollectionCard";
 import { EmptyState } from "../../components/EmptyState";
 import { RARITY_COLORS } from "../../utils/constants";
@@ -107,8 +107,9 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 6, zIndex: 10,
   },
   backText: { ...typography.body, color: colors.primary, fontWeight: "600", marginBottom: spacing.md },
-  title: { ...typography.h2, color: colors.textPrimary },
+  title: { fontFamily: HAND, fontSize: 24, color: colors.ink },
   subtitle: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
+  sectionTitleHand: { fontFamily: HAND },
   list: { flex: 1 },
   listContent: { padding: spacing.md, paddingBottom: 120 },
   sectionHeader: {

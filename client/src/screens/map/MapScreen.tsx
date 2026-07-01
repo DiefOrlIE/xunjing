@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Image, Dimensions, ScrollView, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { colors, typography, spacing, borderRadius } from "../../theme";
-import { Campus, CAMPUS_BOUNDS } from "../../utils/constants";
+import { Campus, CAMPUS_BOUNDS, RARITY_COLORS } from "../../utils/constants";
 import { getActiveChests } from "../../services/chest.api";
 import { getActiveNotes } from "../../services/note.api";
 import { getSocket, getCurrentSocket } from "../../socket/socketClient";
@@ -91,7 +91,7 @@ export function MapScreen() {
       const gcj = wgs84ToGcj02(lat, lng);
       setGpsLabel(`📍 ${gcj.lat.toFixed(6)}, ${gcj.lng.toFixed(6)}`); setUserLocation(gcj);
       if (mapRef.current && L) { if (userMarkerRef.current) mapRef.current.removeLayer(userMarkerRef.current);
-        const icon = L.divIcon({ className: "", html: '<div style="width:22px;height:22px;background:#3498DB;border:4px solid #fff;border-radius:50%;box-shadow:0 0 20px rgba(52,152,219,0.8);"></div>', iconSize: [30,30], iconAnchor: [15,15] });
+        const icon = L.divIcon({ className: "", html: '<div style="width:22px;height:22px;background:#2C82C9;border:4px solid #fff;border-radius:50%;box-shadow:0 0 16px rgba(44,130,201,0.75);"></div>', iconSize: [30,30], iconAnchor: [15,15] });
         userMarkerRef.current = L.marker([gcj.lat, gcj.lng], { icon, zIndexOffset: 9999 }).addTo(mapRef.current);
         /* GPS蓝点仅显示位置，不自动移动地图视角 */
       }
@@ -131,11 +131,11 @@ export function MapScreen() {
 
   const updateMarkers = (ch: any[], ev: any[], nt: any[] = []) => { if (!markersRef.current || !L) return; markersRef.current.clearLayers();
     ch.forEach((c, i) => { const a = c.type === "advanced";
-      const svg = a ? `<div style="filter:drop-shadow(0 3px 12px rgba(155,89,182,0.5))"><svg viewBox="0 0 40 42" width="40" height="42"><rect x="3" y="10" width="34" height="12" rx="6" fill="#9B59B6" stroke="#6C3483" stroke-width="2.5"/><rect x="3" y="10" width="34" height="5" rx="6" fill="#C39BD3"/><rect x="3" y="20" width="34" height="20" rx="6" fill="#7D3C98" stroke="#6C3483" stroke-width="2.5"/><circle cx="20" cy="30" r="4" fill="#DAA520"/></svg></div>` : `<div style="filter:drop-shadow(0 3px 6px rgba(0,0,0,0.3))"><svg viewBox="0 0 36 38" width="36" height="38"><rect x="2" y="8" width="32" height="12" rx="6" fill="#F5A623" stroke="#8B572A" stroke-width="2.5"/><rect x="2" y="18" width="32" height="18" rx="6" fill="#E8961A" stroke="#8B572A" stroke-width="2.5"/><circle cx="18" cy="27" r="4" fill="#8B572A"/></svg></div>`;
+      const svg = a ? `<div style="filter:drop-shadow(0 3px 12px ${colors.accent}73)"><svg viewBox="0 0 40 42" width="40" height="42"><rect x="3" y="10" width="34" height="12" rx="6" fill="${colors.accent}" stroke="#C2452F" stroke-width="2.5"/><rect x="3" y="10" width="34" height="5" rx="6" fill="#FBC0B2"/><rect x="3" y="20" width="34" height="20" rx="6" fill="#E0563F" stroke="#C2452F" stroke-width="2.5"/><circle cx="20" cy="30" r="4" fill="${colors.gold}"/></svg></div>` : `<div style="filter:drop-shadow(0 3px 6px rgba(20,50,60,0.3))"><svg viewBox="0 0 36 38" width="36" height="38"><rect x="2" y="8" width="32" height="12" rx="6" fill="${colors.gold}" stroke="#8A6A1E" stroke-width="2.5"/><rect x="2" y="18" width="32" height="18" rx="6" fill="#D2982E" stroke="#8A6A1E" stroke-width="2.5"/><circle cx="18" cy="27" r="4" fill="#235F96"/></svg></div>`;
       const icon = L.divIcon({ className: "", html: svg, iconSize: a ? [40,42] : [36,38], iconAnchor: a ? [20,42] : [18,38] });
       const m = L.marker([c.coordinates.lat, c.coordinates.lng], { icon }); m.on("click", () => { setDialogData({ type: c.type === "advanced" ? "advancedChest" : "normalChest", data: { ...c, label: (a ? "💎#" : "📦#") + (i+1) } }); setDialogVisible(true); }); markersRef.current.addLayer(m);
     });
-    ev.forEach((e) => { const ec = e.typeId?.color || "#3498DB";
+    ev.forEach((e) => { const ec = e.typeId?.color || colors.primary;
       const pin = `<div style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))"><svg viewBox="0 0 28 36" width="28" height="36"><path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.3 21.7 0 14 0z" fill="${ec}" stroke="#fff" stroke-width="2"/><circle cx="14" cy="13" r="5" fill="#fff"/></svg></div>`;
       const icon = L.divIcon({ className: "", html: pin, iconSize: [28,36], iconAnchor: [14,36] });
       const m = L.marker([e.meetCoordinates.lat, e.meetCoordinates.lng], { icon }); m.on("click", () => { setDialogData({ type: "event", data: e }); setDialogVisible(true); }); markersRef.current.addLayer(m);
@@ -155,15 +155,15 @@ export function MapScreen() {
   const handlePickupNote = async (noteId: string) => { const s = socketRef.current || await getSocket(); if (!s?.connected || !userLocation) return; setDialogVisible(false); s.emit("location_update", { lat: userLocation.lat, lng: userLocation.lng, campus }); setTimeout(() => s.emit("pickup_note", { noteId }), 300); };
   const closeDialog = () => setDialogVisible(false);
   const nc = chests.filter((c: any) => c.type === "normal"); const ac = chests.filter((c: any) => c.type === "advanced");
-  const RCOLORS: Record<string, string> = { "典藏": "#9B59B6", "神秘": "#FF6B6B", "限定": "#E74C3C", "高端": "#F39C12", "普通": "#3498DB", "常见": "#27AE60" };
+  const RCOLORS = RARITY_COLORS;
 
   const T = TouchableOpacity;
   return (
     <View style={S.ct}>
       <View style={S.tb}><View style={S.sw}>
-        <T onPress={() => { setCampus(Campus.GULOU); const b=bounds.gulou; mapRef.current?.fitBounds([[b.minLat,b.minLng],[b.maxLat,b.maxLng]]); }} style={[S.sb, campus === Campus.GULOU && S.sa]}><Text style={[S.st, campus === Campus.GULOU && S.sta]}>🏫 鼓楼</Text></T>
-        <T onPress={() => { setCampus(Campus.XIANLIN); const b=bounds.xianlin; mapRef.current?.fitBounds([[b.minLat,b.minLng],[b.maxLat,b.maxLng]]); }} style={[S.sb, campus === Campus.XIANLIN && S.sa]}><Text style={[S.st, campus === Campus.XIANLIN && S.sta]}>🏢 仙林</Text></T>
-        <T onPress={() => { setCampus(Campus.SUZHOU); const b=bounds.suzhou; mapRef.current?.fitBounds([[b.minLat,b.minLng],[b.maxLat,b.maxLng]]); }} style={[S.sb, campus === Campus.SUZHOU && S.sa]}><Text style={[S.st, campus === Campus.SUZHOU && S.sta]}>🏛️ 苏州</Text></T>
+        <T onPress={() => { setCampus(Campus.GULOU); const b=bounds.gulou; mapRef.current?.fitBounds([[b.minLat,b.minLng],[b.maxLat,b.maxLng]]); }} style={[S.sb, campus === Campus.GULOU && S.sa]}><Text style={[S.st, campus === Campus.GULOU && S.sta]}>鼓楼</Text></T>
+        <T onPress={() => { setCampus(Campus.XIANLIN); const b=bounds.xianlin; mapRef.current?.fitBounds([[b.minLat,b.minLng],[b.maxLat,b.maxLng]]); }} style={[S.sb, campus === Campus.XIANLIN && S.sa]}><Text style={[S.st, campus === Campus.XIANLIN && S.sta]}>仙林</Text></T>
+        <T onPress={() => { setCampus(Campus.SUZHOU); const b=bounds.suzhou; mapRef.current?.fitBounds([[b.minLat,b.minLng],[b.maxLat,b.maxLng]]); }} style={[S.sb, campus === Campus.SUZHOU && S.sa]}><Text style={[S.st, campus === Campus.SUZHOU && S.sta]}>苏州</Text></T>
       </View></View>
       {gpsLabel ? (
         <View style={S.gb}>
@@ -179,7 +179,7 @@ export function MapScreen() {
                     setUserLocation(gcj);
                     if (mapRef.current && L) {
                       if (userMarkerRef.current) mapRef.current.removeLayer(userMarkerRef.current);
-                      const icon = L.divIcon({ className: "", html: '<div style="width:22px;height:22px;background:#3498DB;border:4px solid #fff;border-radius:50%;box-shadow:0 0 20px rgba(52,152,219,0.8);"></div>', iconSize: [30,30], iconAnchor: [15,15] });
+                      const icon = L.divIcon({ className: "", html: '<div style="width:22px;height:22px;background:#2C82C9;border:4px solid #fff;border-radius:50%;box-shadow:0 0 16px rgba(44,130,201,0.75);"></div>', iconSize: [30,30], iconAnchor: [15,15] });
                       userMarkerRef.current = L.marker([gcj.lat, gcj.lng], { icon, zIndexOffset: 9999 }).addTo(mapRef.current);
                       mapRef.current.setView([gcj.lat, gcj.lng], Math.max(mapRef.current.getZoom(), 16));
                     }
@@ -252,7 +252,7 @@ export function MapScreen() {
 
 const S = StyleSheet.create({
   ct: { flex: 1, backgroundColor: colors.background }, tb: { paddingTop: 56, paddingHorizontal: 16, paddingBottom: 10, backgroundColor: "#fff", borderBottomLeftRadius: 16, borderBottomRightRadius: 16, elevation: 8 }, sw: { flexDirection: "row", backgroundColor: "#f0f0f0", borderRadius: 16, padding: 4 }, sb: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center" }, sa: { backgroundColor: colors.primary }, st: { fontWeight: "700", color: "#999" }, sta: { color: "#fff" },
-  gb: { backgroundColor: "rgba(52,152,219,0.9)", paddingVertical: 4, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 }, gt: { color: "#fff", fontWeight: "700", fontSize: 12 }, gr: { backgroundColor: "rgba(255,255,255,0.25)", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 }, grt: { color: "#fff", fontWeight: "700", fontSize: 11 },
+  gb: { backgroundColor: "rgba(44,130,201,0.92)", paddingVertical: 4, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 }, gt: { color: "#fff", fontWeight: "700", fontSize: 12 }, gr: { backgroundColor: "rgba(255,255,255,0.25)", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 }, grt: { color: "#fff", fontWeight: "700", fontSize: 11 },
   rf: { position: "absolute", top: 12, left: 12, backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, elevation: 6, zIndex: 30 },
   cs: { position: "absolute", top: 12, right: 12, gap: 8, alignItems: "flex-end" },
   ctr: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 }, ca: { borderWidth: 1.5, borderColor: colors.rarity.典藏 + "50" }, ci: { fontSize: 22 }, cn: { fontWeight: "800", fontSize: 18, color: "#333" },

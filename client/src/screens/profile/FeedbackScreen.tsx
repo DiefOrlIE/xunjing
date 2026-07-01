@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, Alert, ActivityIndicator, RefreshControl,
 } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { EmptyState } from "../../components/EmptyState";
 import { submitFeedback, getMyFeedback, FeedbackItem } from "../../services/feedback.api";
 
@@ -99,7 +99,7 @@ export function FeedbackScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>← 返回</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>📮 问题反馈</Text>
+        <Text style={styles.headerTitle}>问题反馈</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { paddingRight: spacing.md },
   backText: { ...typography.h2, color: colors.primary },
-  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  headerTitle: { fontFamily: HAND, fontSize: 24, color: colors.ink },
   tabRow: {
     flexDirection: "row",
     backgroundColor: colors.surface,

@@ -6,7 +6,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { RarityBadge } from "../../components/RarityBadge";
 import { EmptyState } from "../../components/EmptyState";
 import {
@@ -250,7 +250,7 @@ export function AdminPanelScreen({ navigation }: any) {
       {/* 头部 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingRight: spacing.md }}><Text style={{ ...typography.h2, color: colors.primary }}>← 返回</Text></TouchableOpacity>
-        <Text style={styles.headerTitle}>👑 管理后台</Text>
+        <Text style={styles.headerTitle}>船长舱 · 管理</Text>
       </View>
 
       {/* Tab切换 */}
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderBottomLeftRadius: borderRadius.xl, borderBottomRightRadius: borderRadius.xl,
     shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 6, zIndex: 10,
   },
-  headerTitle: { ...typography.h2, color: colors.rarity.典藏 },
+  headerTitle: { fontFamily: HAND, fontSize: 24, color: colors.rarity.典藏 },
   tabRow: {
     flexDirection: "row", backgroundColor: colors.surface, margin: spacing.md,
     borderRadius: borderRadius.lg, padding: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 3, elevation: 2,

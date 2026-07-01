@@ -1,5 +1,11 @@
 import { TextStyle } from "react-native";
 
+// 航海志字体族（Web 端由 index.ts 运行时注入 Google Fonts；APK 阶段再走 expo-font 打包）
+// 纪律：手写体(HAND)只用于标题/装饰，正文/按钮/表单一律用 BODY，避免可读性与跨端渲染问题。
+export const HAND = "Long Cang";                       // 手写（标题/批注/数字装饰）
+export const SERIF = "Cormorant Garamond, Noto Serif SC"; // 衬线（en 副标/票根 Cartouche）
+export const BODY = "Noto Sans SC";                    // 正文/按钮/标签
+
 export const typography: Record<string, TextStyle> = {
   h1: { fontSize: 28, fontWeight: "700", lineHeight: 36 },
   h2: { fontSize: 22, fontWeight: "700", lineHeight: 30 },

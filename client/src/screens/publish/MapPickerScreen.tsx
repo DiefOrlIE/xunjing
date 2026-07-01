@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { Campus, CAMPUS_BOUNDS } from "../../utils/constants";
 import { getCachedBounds, setCachedBounds, CampusBoundData } from "../../utils/mapCache";
 import api from "../../services/api";
@@ -74,7 +74,7 @@ export function MapPickerScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   ct: { flex: 1, backgroundColor: colors.background },
   header: { paddingTop: 56, paddingBottom: spacing.sm, paddingHorizontal: spacing.md, backgroundColor: "#fff", flexDirection: "row", alignItems: "center", justifyContent: "space-between", elevation: 4, zIndex: 20 },
-  backText: { ...typography.h2, color: colors.primary }, title: { ...typography.bodyBold, color: colors.textPrimary },
+  backText: { ...typography.h2, color: colors.primary }, title: { fontFamily: HAND, fontSize: 20, color: colors.ink },
   confirmBtn: { backgroundColor: colors.primary, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.lg }, confirmText: { ...typography.bodyBold, color: "#FFF" },
   coordBar: { position: "absolute", bottom: 50, left: 16, right: 16, backgroundColor: "rgba(39,174,96,0.9)", borderRadius: 12, padding: spacing.md }, coordText: { color: "#FFF", fontWeight: "700", textAlign: "center" },
 });

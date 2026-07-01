@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
   Alert, ActivityIndicator,
 } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, BODY } from "../../theme";
 import { Campus, CAMPUS_NAMES } from "../../utils/constants";
 import { getEventTypes, createEvent } from "../../services/event.api";
 import { EventTypeData } from "../../types";
@@ -95,9 +95,12 @@ export function PublishEventScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>📝 发布招募</Text>
+        <View>
+          <Text style={styles.headerTitle}>发起同游</Text>
+          <Text style={styles.headerEn}>VOYAGE LOG · 出航申请单</Text>
+        </View>
         <TouchableOpacity onPress={handleReset} style={styles.resetBtn}>
-          <Text style={styles.resetText}>🔄 清空</Text>
+          <Text style={styles.resetText}>清空</Text>
         </TouchableOpacity>
       </View>
 
@@ -134,15 +137,12 @@ export function PublishEventScreen({ navigation }: any) {
         <Text style={styles.label}>校区 <Text style={styles.required}>*</Text></Text>
         <View style={styles.campusRow}>
           <TouchableOpacity style={[styles.campusBtn, campus === Campus.GULOU && styles.campusBtnActive]} onPress={() => setCampus(Campus.GULOU)}>
-            <Text style={styles.campusEmoji}>🏫</Text>
             <Text style={[styles.campusBtnText, campus === Campus.GULOU && styles.campusBtnTextActive]}>鼓楼校区</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.campusBtn, campus === Campus.XIANLIN && styles.campusBtnActive]} onPress={() => setCampus(Campus.XIANLIN)}>
-            <Text style={styles.campusEmoji}>🏢</Text>
             <Text style={[styles.campusBtnText, campus === Campus.XIANLIN && styles.campusBtnTextActive]}>仙林校区</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.campusBtn, campus === Campus.SUZHOU && styles.campusBtnActive]} onPress={() => setCampus(Campus.SUZHOU)}>
-            <Text style={styles.campusEmoji}>🏛️</Text>
             <Text style={[styles.campusBtnText, campus === Campus.SUZHOU && styles.campusBtnTextActive]}>苏州校区</Text>
           </TouchableOpacity>
         </View>
@@ -223,8 +223,8 @@ export function PublishEventScreen({ navigation }: any) {
         </View>
         <TextInput style={[styles.input, styles.textarea]} placeholder="详细描述活动内容、注意事项等（选填）" placeholderTextColor={colors.textHint} value={description} onChangeText={setDescription} multiline textAlignVertical="top" />
 
-        <TouchableOpacity style={[styles.submitBtn, submitting && styles.submitDisabled]} onPress={handleSubmit} disabled={submitting} activeOpacity={0.8}>
-          <Text style={styles.submitText}>{submitting ? "发布中..." : "📢 发布招募"}</Text>
+        <TouchableOpacity style={[styles.submitBtn, submitting && styles.submitDisabled]} onPress={handleSubmit} disabled={submitting} activeOpacity={0.85}>
+          <Text style={styles.submitText}>{submitting ? "发起中..." : "⚓ 发起同游"}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -235,38 +235,38 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background },
   header: {
-    paddingTop: 56, paddingBottom: spacing.md, paddingHorizontal: spacing.lg,
-    backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    borderBottomLeftRadius: borderRadius.xl, borderBottomRightRadius: borderRadius.xl,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 6, zIndex: 10,
+    paddingTop: 54, paddingBottom: spacing.sm, paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between",
+    zIndex: 10,
   },
-  headerTitle: { ...typography.h2, color: colors.textPrimary },
-  resetBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-  resetText: { ...typography.caption, color: colors.primary, fontWeight: "600" },
+  headerTitle: { fontFamily: HAND, fontSize: 27, color: colors.ink, lineHeight: 30 },
+  headerEn: { fontFamily: BODY, fontSize: 9.5, color: colors.faded, letterSpacing: 2, marginTop: 2 },
+  resetBtn: { borderWidth: 1, borderColor: colors.line, borderRadius: 5, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  resetText: { ...typography.caption, color: colors.sub, fontWeight: "600" },
   scrollView: { flex: 1 },
   scrollContent: { padding: spacing.xl, paddingBottom: 120 },
   stepHeader: { flexDirection: "row", alignItems: "center", marginBottom: spacing.lg, marginTop: spacing.md },
-  stepBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary, justifyContent: "center", alignItems: "center", marginRight: spacing.sm },
+  stepBadge: { width: 26, height: 26, borderRadius: 5, backgroundColor: colors.primary, justifyContent: "center", alignItems: "center", marginRight: spacing.sm },
   stepBadgeText: { ...typography.bodyBold, color: "#FFF", fontSize: 14 },
   stepTitle: { ...typography.h3, color: colors.textPrimary },
-  label: { ...typography.bodyBold, color: colors.textPrimary, marginBottom: spacing.sm, marginTop: spacing.sm },
+  label: { fontFamily: BODY, fontSize: 12.5, fontWeight: "700", color: colors.sub, letterSpacing: 2, marginBottom: spacing.sm, marginTop: spacing.md },
   required: { color: colors.error },
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   typeCard: {
-    width: "30%", backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.md,
-    alignItems: "center", borderWidth: 2, borderColor: colors.border,
+    width: "30%", backgroundColor: colors.card, borderRadius: 5, padding: spacing.md,
+    alignItems: "center", borderWidth: 1, borderColor: colors.primary + "33",
   },
-  typeCardActive: { borderColor: colors.primary, backgroundColor: colors.primary + "08" },
+  typeCardActive: { borderColor: colors.primary, backgroundColor: colors.primary + "0F" },
   typeEmoji: { fontSize: 28, marginBottom: spacing.xs },
   typeName: { ...typography.caption, color: colors.textSecondary, fontWeight: "600" },
   typeNameActive: { color: colors.primary },
   noTypes: { ...typography.body, color: colors.textHint, padding: spacing.md },
   campusRow: { flexDirection: "row", gap: spacing.sm },
   campusBtn: {
-    flex: 1, backgroundColor: colors.surface, borderRadius: borderRadius.lg, paddingVertical: spacing.lg,
-    alignItems: "center", borderWidth: 2, borderColor: colors.border,
+    flex: 1, backgroundColor: colors.card, borderRadius: 5, paddingVertical: spacing.lg,
+    alignItems: "center", borderWidth: 1, borderColor: colors.primary + "33",
   },
-  campusBtnActive: { borderColor: colors.primary, backgroundColor: colors.primary + "08" },
+  campusBtnActive: { borderColor: colors.primary, backgroundColor: colors.primary + "0F" },
   campusEmoji: { fontSize: 32, marginBottom: spacing.xs },
   campusBtnText: { ...typography.bodyBold, color: colors.textSecondary },
   campusBtnTextActive: { color: colors.primary },
@@ -274,27 +274,27 @@ const styles = StyleSheet.create({
   dtField: { flex: 1, alignItems: "center" },
   dtLabel: { ...typography.small, color: colors.textSecondary, marginBottom: 2 },
   dtInput: {
-    ...typography.body, backgroundColor: colors.surface, borderRadius: borderRadius.md, borderWidth: 1.5,
-    borderColor: colors.border, paddingVertical: spacing.sm, color: colors.textPrimary, textAlign: "center",
+    ...typography.body, backgroundColor: colors.card, borderRadius: 5, borderWidth: 1,
+    borderColor: colors.primary + "33", paddingVertical: spacing.sm, color: colors.textPrimary, textAlign: "center",
     fontSize: 15, fontWeight: "600", width: "100%",
   },
   stepperRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xl },
   stepperBtn: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface,
-    borderWidth: 2, borderColor: colors.border, justifyContent: "center", alignItems: "center",
+    width: 44, height: 44, borderRadius: 6, backgroundColor: colors.card,
+    borderWidth: 1, borderColor: colors.primary + "55", justifyContent: "center", alignItems: "center",
   },
   stepperBtnText: { ...typography.h2, color: colors.primary, fontSize: 24 },
   stepperValue: { alignItems: "center" },
   stepperNumber: { ...typography.h1, color: colors.textPrimary, fontSize: 36 },
   stepperUnit: { ...typography.caption, color: colors.textSecondary },
   input: {
-    ...typography.body, backgroundColor: colors.surface, borderRadius: borderRadius.md, borderWidth: 1.5,
-    borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.textPrimary,
+    ...typography.body, backgroundColor: colors.card, borderRadius: 5, borderWidth: 1,
+    borderColor: colors.primary + "33", paddingHorizontal: spacing.md, paddingVertical: spacing.md, color: colors.textPrimary,
   },
   textarea: { minHeight: 80, paddingTop: spacing.md },
   mapPick: {
-    backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderWidth: 1.5,
-    borderColor: colors.border, borderStyle: "dashed", overflow: "hidden",
+    backgroundColor: colors.card, borderRadius: 5, borderWidth: 1,
+    borderColor: colors.primary + "55", borderStyle: "dashed", overflow: "hidden",
   },
   mapPickEmpty: { alignItems: "center", paddingVertical: spacing.xxl },
   mapPickEmptyIcon: { fontSize: 36, marginBottom: spacing.sm },
@@ -305,10 +305,9 @@ const styles = StyleSheet.create({
   mapPickCoord: { ...typography.caption, color: colors.textSecondary, fontFamily: "monospace", marginTop: 2 },
   mapPickChange: { ...typography.caption, color: colors.primary, fontWeight: "600" },
   submitBtn: {
-    backgroundColor: colors.primary, borderRadius: borderRadius.xl, paddingVertical: spacing.lg,
-    alignItems: "center", marginTop: spacing.xxxl,
-    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+    backgroundColor: colors.primary, borderRadius: 6, borderWidth: 1.5, borderColor: colors.primaryDark,
+    paddingVertical: spacing.lg, alignItems: "center", marginTop: spacing.xxl,
   },
   submitDisabled: { opacity: 0.6 },
-  submitText: { ...typography.button, color: colors.textOnPrimary, fontSize: 18 },
+  submitText: { ...typography.button, color: colors.textOnPrimary, fontSize: 17, letterSpacing: 4 },
 });

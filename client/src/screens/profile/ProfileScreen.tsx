@@ -3,7 +3,8 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Alert, ActivityIndicator, RefreshControl, Modal, TextInput, Platform,
 } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, SERIF, BODY } from "../../theme";
+import { Seal, SeaPaper } from "../../theme/whaleKit";
 import { Avatar } from "../../components/Avatar";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { EditNicknameModal } from "../../components/EditNicknameModal";
@@ -133,66 +134,59 @@ export function ProfileScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      {/* ── 顶部渐变装饰 ── */}
-      <View style={styles.topDecoration}>
-        <View style={styles.topCircle1} />
-        <View style={styles.topCircle2} />
-      </View>
-
+      <SeaPaper />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
       >
-        {/* ── 头像区 ── */}
-        <View style={styles.avatarSection}>
-          <Avatar
-            uri={user?.avatar || undefined}
-            size={96}
-            emoji={user?.nickname ? user.nickname.charAt(0) : "👤"}
-            borderColor={isAdmin ? colors.rarity.典藏 : colors.primary}
-          />
-          <Text style={styles.nickname}>{user?.nickname || "新用户"}</Text>
-          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
-            <TouchableOpacity onPress={() => setNicknameModalVisible(true)} style={styles.editNicknameBtn}>
-              <Text style={styles.editNicknameText}>✏️ 昵称</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleChangeAvatar} style={styles.editNicknameBtn}>
-              <Text style={styles.editNicknameText}>📷 头像</Text>
-            </TouchableOpacity>
+        {/* ── 船长证（含航行数据）── */}
+        <View style={styles.licence}>
+          <View style={styles.licenceSeal}><Seal size={62} /></View>
+          <View style={styles.licenceHead}>
+            <Text style={styles.licenceTitle}>寻鲸 · 船长证</Text>
+            <Text style={styles.licenceEn}>CAPTAIN'S LICENCE</Text>
           </View>
-          <View style={styles.idBadge}>
-            <Text style={styles.idText}>ID: {user?.userId || "---"}</Text>
-          </View>
-          <Text style={styles.email}>{user?.email || ""}</Text>
-          {isAdmin && (
-            <View style={styles.adminBadge}>
-              <Text style={styles.adminBadgeText}>👑 管理员</Text>
+          <View style={styles.licenceBody}>
+            <Avatar
+              uri={user?.avatar || undefined}
+              size={64}
+              emoji={user?.nickname ? user.nickname.charAt(0) : "?"}
+              borderColor={isAdmin ? colors.rarity.典藏 : colors.primary}
+            />
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                <Text style={styles.nickname}>{user?.nickname || "新船员"}</Text>
+                <View style={styles.roleTag}><Text style={styles.roleTagText}>{isAdmin ? "管理员" : "船长"}</Text></View>
+              </View>
+              <Text style={styles.idText}>ID {user?.userId || "---"}</Text>
+              <Text style={styles.email}>{user?.email || ""}</Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
+                <TouchableOpacity onPress={() => setNicknameModalVisible(true)} style={styles.editNicknameBtn}>
+                  <Text style={styles.editNicknameText}>改名</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleChangeAvatar} style={styles.editNicknameBtn}>
+                  <Text style={styles.editNicknameText}>换头像</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
-        </View>
-
-        {/* ── 统计卡片 ── */}
-        <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>📊 我的数据</Text>
-          <View style={styles.statsRow}>
+          </View>
+          {/* 航行数据（并入船长证） */}
+          <View style={styles.licenceStats}>
             <View style={styles.statItem}>
-              <Text style={styles.statEmoji}>🎁</Text>
               <Text style={styles.statNumber}>{stats.totalCollections}</Text>
-              <Text style={styles.statLabel}>收藏品</Text>
+              <Text style={styles.statLabel}>鲸藏</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statEmoji}>📝</Text>
               <Text style={styles.statNumber}>{stats.hostedEvents}</Text>
-              <Text style={styles.statLabel}>发布招募</Text>
+              <Text style={styles.statLabel}>发起同游</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statEmoji}>🤝</Text>
               <Text style={styles.statNumber}>{stats.participatedEvents}</Text>
-              <Text style={styles.statLabel}>参与招募</Text>
+              <Text style={styles.statLabel}>参与同游</Text>
             </View>
           </View>
         </View>
@@ -200,7 +194,6 @@ export function ProfileScreen({ navigation }: any) {
         {/* ── 管理员入口 ── */}
         {isAdmin && (
           <TouchableOpacity style={styles.adminEntry} activeOpacity={0.7} onPress={() => navigation.navigate("AdminPanel")}>
-            <Text style={styles.adminEntryEmoji}>⚙️</Text>
             <Text style={styles.adminEntryText}>管理后台</Text>
             <Text style={styles.adminEntryArrow}>›</Text>
           </TouchableOpacity>
@@ -233,7 +226,7 @@ export function ProfileScreen({ navigation }: any) {
           onPress={() => { setNewPassword(""); setPasswordModalVisible(true); }}
           activeOpacity={0.7}
         >
-          <Text style={styles.setPasswordText}>🔐 设置登录密码</Text>
+          <Text style={styles.setPasswordText}>设置登录密码</Text>
         </TouchableOpacity>
 
         {/* ── 底部操作 ── */}
@@ -255,7 +248,7 @@ export function ProfileScreen({ navigation }: any) {
                 }
               }}
             >
-              <Text style={styles.feedbackButtonText}>📱 下载App（仅限安卓）</Text>
+              <Text style={styles.feedbackButtonText}>下载 App（仅限安卓）</Text>
             </TouchableOpacity>
           )}
 
@@ -265,17 +258,17 @@ export function ProfileScreen({ navigation }: any) {
             activeOpacity={0.7}
             onPress={() => navigation.navigate("Feedback")}
           >
-            <Text style={styles.feedbackButtonText}>📮 问题反馈</Text>
+            <Text style={styles.feedbackButtonText}>问题反馈</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.tutorialButton} onPress={() => { const { setJustLoggedIn } = useAuthStore.getState(); setJustLoggedIn(true); }} activeOpacity={0.7}>
-            <Text style={{ ...typography.bodyBold, color: "#FFF" }}>📖 查看教程</Text>
+            <Text style={{ ...typography.bodyBold, color: "#FFF" }}>查看教程</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
-            <Text style={styles.logoutText}>🚪 退出登录</Text>
+            <Text style={styles.logoutText}>退出登录</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount} activeOpacity={0.7}>
-            <Text style={styles.deleteText}>⚠️ 注销账号</Text>
+            <Text style={styles.deleteText}>注销账号</Text>
           </TouchableOpacity>
         </View>
 
@@ -370,19 +363,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 80,
+    paddingTop: 52,
     paddingBottom: 120,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     alignItems: "center",
   },
+  // ── 船长证 ──
+  licence: {
+    width: "100%",
+    backgroundColor: colors.paper2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary + "33",
+    padding: 15,
+    marginBottom: spacing.lg,
+    overflow: "hidden",
+  },
+  licenceSeal: { position: "absolute", right: 12, top: "50%", marginTop: -10, transform: [{ rotate: "-8deg" }] },
+  licenceHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, paddingBottom: 9, borderBottomWidth: 1, borderStyle: "dashed", borderBottomColor: colors.primary + "33" },
+  licenceTitle: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.primary },
+  licenceEn: { fontFamily: BODY, fontSize: 9.5, color: colors.faded, letterSpacing: 2 },
+  licenceBody: { flexDirection: "row", alignItems: "center", gap: 13 },
+  roleTag: { borderWidth: 1, borderColor: colors.primary + "66", borderRadius: 3, paddingHorizontal: 7, paddingVertical: 1 },
+  roleTagText: { fontFamily: BODY, fontSize: 10, fontWeight: "700", color: colors.primary },
+  licenceStats: { flexDirection: "row", alignItems: "center", marginTop: 14, paddingTop: 13, borderTopWidth: 1, borderStyle: "dashed", borderTopColor: colors.primary + "33" },
   avatarSection: {
     alignItems: "center",
     marginBottom: spacing.xxl,
   },
   nickname: {
-    ...typography.h1,
+    fontFamily: HAND,
+    fontSize: 24,
     color: colors.textPrimary,
-    marginTop: spacing.md,
   },
   editNicknameBtn: {
     marginTop: spacing.xs,
@@ -426,15 +438,12 @@ const styles = StyleSheet.create({
   },
   statsCard: {
     width: "100%",
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xxl,
+    backgroundColor: colors.card,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary + "26",
+    padding: spacing.xl,
     marginBottom: spacing.lg,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
   },
   statsTitle: {
     ...typography.bodyBold,
@@ -455,9 +464,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   statNumber: {
-    ...typography.h1,
+    fontFamily: HAND,
     color: colors.primary,
-    fontSize: 26,
+    fontSize: 28,
   },
   statLabel: {
     ...typography.small,
@@ -473,15 +482,12 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
+    backgroundColor: colors.card,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
     padding: spacing.lg,
     marginBottom: spacing.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
   },
   adminEntryEmoji: {
     fontSize: 22,

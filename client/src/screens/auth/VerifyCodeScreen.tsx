@@ -5,7 +5,7 @@ import { RouteProp } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/AuthStack";
 import { verifyLogin, sendVerifyCode } from "../../services/auth.api";
 import { useAuthStore } from "../../store/authStore";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "VerifyCode">;
@@ -146,8 +146,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   title: {
-    ...typography.h2,
-    color: colors.textPrimary,
+    fontFamily: HAND,
+    fontSize: 30,
+    color: colors.ink,
     marginBottom: spacing.sm,
   },
   subtitle: {
@@ -165,29 +166,27 @@ const styles = StyleSheet.create({
   codeInput: {
     width: 48,
     height: 60,
-    borderRadius: borderRadius.md,
-    borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary + "33",
+    backgroundColor: colors.card,
     textAlign: "center",
     ...typography.h2,
     color: colors.textPrimary,
   },
   codeInputFilled: {
     borderColor: colors.primary,
+    borderWidth: 1.5,
   },
   button: {
     width: "100%",
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.xl,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.primaryDark,
     paddingVertical: spacing.lg,
     alignItems: "center",
     marginBottom: spacing.xl,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   buttonDisabled: {
     opacity: 0.5,

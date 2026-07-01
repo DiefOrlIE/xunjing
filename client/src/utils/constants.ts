@@ -18,15 +18,9 @@ export const CAMPUS_BOUNDS: Record<Campus, { minLat: number; maxLat: number; min
   [Campus.SUZHOU]: { minLat: 31.3160, maxLat: 31.3300, minLng: 120.5150, maxLng: 120.5310 },
 };
 
-// 稀有度颜色
-export const RARITY_COLORS: Record<string, string> = {
-  "典藏": "#9B59B6",
-  "神秘": "#FF6B6B",
-  "限定": "#E74C3C",
-  "高端": "#F39C12",
-  "普通": "#3498DB",
-  "常见": "#27AE60",
-};
+// 稀有度颜色 — 单一来源：theme/colors 的 rarity（收敛重复，改一处全联动）
+import { colors } from "../theme/colors";
+export const RARITY_COLORS: Record<string, string> = colors.rarity;
 
 // 活动状态中文名
 export const ACTIVITY_STATUS_LABELS: Record<string, string> = {

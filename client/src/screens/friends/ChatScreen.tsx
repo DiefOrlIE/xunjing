@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, TextInput,
   TouchableOpacity, Platform, Keyboard, Alert, Dimensions,
 } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { Avatar } from "../../components/Avatar";
 import { MessageBubble } from "../../components/MessageBubble";
 import { getPrivateChatHistory, sendPrivateMessage, revokeMessage, deleteMessageApi } from "../../services/chat.api";
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { paddingHorizontal: spacing.xs },
   backText: { ...typography.h2, color: colors.primary },
-  headerName: { ...typography.bodyBold, color: colors.textPrimary, flex: 1 },
+  headerName: { fontFamily: HAND, fontSize: 20, color: colors.ink, flex: 1 },
   galleryBtn: { padding: spacing.sm },
   galleryBtnText: { fontSize: 22 },
   msgList: { paddingVertical: spacing.md, flexGrow: 1 },

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import api from "../../services/api";
 
 export function ActivityTypeListScreen({ route, navigation }: any) {
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   header: { paddingTop: 56, paddingBottom: spacing.md, paddingHorizontal: spacing.lg, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", borderBottomLeftRadius: borderRadius.xl, borderBottomRightRadius: borderRadius.xl, elevation: 4, gap: spacing.md },
   backBtn: { paddingHorizontal: spacing.xs },
   backText: { ...typography.h2, color: colors.primary },
-  title: { ...typography.h2, color: colors.textPrimary },
+  title: { fontFamily: HAND, fontSize: 24, color: colors.ink },
   list: { padding: spacing.md, paddingBottom: 100 },
   card: { flexDirection: "row", backgroundColor: colors.surface, borderRadius: borderRadius.lg, marginBottom: spacing.sm, overflow: "hidden", elevation: 2 },
   bar: { width: 4 },

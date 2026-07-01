@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, ActivityIndicator, RefreshControl,
 } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { Avatar } from "../../components/Avatar";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { ACTIVITY_STATUS_LABELS, PARTICIPANT_STATUS_LABELS } from "../../utils/constants";
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 6, zIndex: 10,
   },
   backText: { ...typography.body, color: colors.primary, fontWeight: "600" },
-  headerTitle: { ...typography.bodyBold, color: colors.textPrimary, flex: 1, textAlign: "center" },
+  headerTitle: { fontFamily: HAND, fontSize: 20, color: colors.ink, flex: 1, textAlign: "center" },
   scroll: { flex: 1 },
   scrollContent: { padding: spacing.lg, paddingBottom: 120 },
   statusRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.lg },

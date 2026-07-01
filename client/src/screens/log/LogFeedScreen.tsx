@@ -4,7 +4,7 @@ import {
   RefreshControl, ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { EmptyState } from "../../components/EmptyState";
 import { RARITY_COLORS, ACTIVITY_STATUS_LABELS, PARTICIPANT_STATUS_LABELS } from "../../utils/constants";
 import { getFeed } from "../../services/log.api";
@@ -88,7 +88,7 @@ export function LogFeedScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>📖 活动日志</Text>
+        <Text style={styles.headerTitle}>航海日志</Text>
       </View>
 
       <FlatList
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderBottomLeftRadius: borderRadius.xl, borderBottomRightRadius: borderRadius.xl,
     shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 6, zIndex: 10,
   },
-  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  headerTitle: { fontFamily: HAND, fontSize: 24, color: colors.ink },
   listContent: { padding: spacing.md, paddingBottom: 100 },
   emptyList: { flex: 1 },
   card: {

@@ -1,60 +1,74 @@
-// 🎨 校园社交与数字收藏 - 设计系统配色
-// 风格：可爱、卡通、活泼、暖色调
+// 🎨 寻鲸「航海志」配色 · 浅滩（shallows）
+// 海洋蓝为主 + 薄荷/珊瑚点缀，清新冷色；保留旧 key 名以便全 App 平滑换肤。
 
 export const colors = {
-  // ── 主色调 ──
-  primary: "#FF6B6B",       // 珊瑚粉 - 主要品牌色
-  primaryLight: "#FF8E8E",  // 浅珊瑚粉
-  primaryDark: "#E05555",   // 深珊瑚粉
+  // ── 主色调（海洋蓝）──
+  primary: "#2C82C9",       // 海洋蓝 - 主品牌色（原珊瑚粉）
+  primaryLight: "#5BA3DC",  // 浅海蓝
+  primaryDark: "#235F96",   // 深海蓝
 
   // ── 辅助色 ──
-  secondary: "#FFD93D",     // 阳光黄
-  accent: "#6BCB77",        // 清新绿
-  accentLight: "#A8E6CF",   // 浅薄荷绿
+  secondary: "#45C0A6",     // 薄荷绿（原阳光黄）
+  accent: "#F97A66",        // 珊瑚（原清新绿）— 强调/CTA 点缀
+  accentLight: "#FBC9BD",   // 浅珊瑚
 
   // ── 背景色 ──
-  background: "#FFF8F0",    // 暖奶油色（主背景）
+  background: "#F2F7FB",    // 浅滩纸（主背景）
   surface: "#FFFFFF",       // 卡片/表面白
-  surfaceAlt: "#FFF0E6",    // 暖橙白（替代背景）
+  surfaceAlt: "#E9F1F8",    // 冷调替代背景
 
   // ── 文字色 ──
-  textPrimary: "#2D3436",   // 深炭灰（不是纯黑）
-  textSecondary: "#636E72", // 暖灰
-  textHint: "#B2BEC3",      // 提示灰
+  textPrimary: "#213F58",   // 深墨蓝（不是纯黑）
+  textSecondary: "#5E7689", // 海雾灰蓝
+  textHint: "#A6B6C2",      // 提示灰
   textOnPrimary: "#FFFFFF", // 主色上的文字
 
-  // ── 稀有度配色 ──
+  // ── 稀有度配色（真实 6 级，浅滩调）──
   rarity: {
-    典藏: "#9B59B6",  // 紫色 Legendary
-    神秘: "#FF6B6B",  // 彩虹（用主色渐变模拟） Mythic
-    限定: "#E74C3C",  // 红色 Limited
-    高端: "#F39C12",  // 橙色 Epic
-    普通: "#3498DB",  // 蓝色 Rare
-    常见: "#27AE60",  // 绿色 Common
+    典藏: "#6C63D6",  // 靛紫 Legendary
+    神秘: "#C75BB8",  // 洋红 Mythic
+    限定: "#F97A66",  // 珊瑚 Limited
+    高端: "#E9B23F",  // 金 Epic
+    普通: "#2C82C9",  // 海蓝 Rare
+    常见: "#45C0A6",  // 薄荷 Common
   },
 
   // ── 功能色 ──
-  success: "#27AE60",
-  warning: "#F39C12",
-  error: "#E74C3C",
-  info: "#3498DB",
+  success: "#5BB98C",
+  warning: "#E9B23F",
+  error: "#E25563",
+  info: "#2C82C9",
 
   // ── 边框和分割线 ──
-  border: "#F0E6DA",
-  divider: "#F5EDE3",
+  border: "#E6EEF4",
+  divider: "#EDF3F8",
 
   // ── Tab栏 ──
-  tabActive: "#FF6B6B",
-  tabInactive: "#B2BEC3",
+  tabActive: "#2C82C9",
+  tabInactive: "#A6B6C2",
   tabBackground: "#FFFFFF",
+
+  // ── 航海志别名（供新版屏幕/whaleKit 使用；多为上面值的语义别名）──
+  paper: "#F2F7FB",
+  paper2: "#FBFDFF",
+  card: "#FFFFFF",
+  grid: "#E2ECF4",
+  line: "#E6EEF4",
+  ink: "#213F58",
+  sub: "#5E7689",
+  faded: "#A6B6C2",
+  green: "#5BB98C",
+  gold: "#E9B23F",
+  headerBg: "#235F96",
+  headerInk: "#EAF4FC",
 };
 
-// 稀有度渐变色（用于神秘稀有度的彩虹效果）
+// 稀有度渐变色（神秘用多色冷调横扫模拟「神话」感）
 export const rarityGradients = {
-  典藏: ["#9B59B6", "#C39BD3"],
-  神秘: ["#FF6B6B", "#FFD93D", "#6BCB77", "#4ECDC4", "#9B59B6"],
-  限定: ["#E74C3C", "#FF6B6B"],
-  高端: ["#F39C12", "#FFD93D"],
-  普通: ["#3498DB", "#85C1E9"],
-  常见: ["#27AE60", "#82E0AA"],
+  典藏: ["#6C63D6", "#9B93E6"],
+  神秘: ["#C75BB8", "#6C63D6", "#45C0A6"],
+  限定: ["#F97A66", "#FBA08F"],
+  高端: ["#E9B23F", "#F3C868"],
+  普通: ["#2C82C9", "#5BA3DC"],
+  常见: ["#45C0A6", "#7AD4BF"],
 };

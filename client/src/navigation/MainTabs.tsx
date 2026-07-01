@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Text, View, StyleSheet } from "react-native";
-import { colors } from "../theme";
+import { colors, BODY } from "../theme";
+import { Waveform } from "../theme/whaleKit";
 import { TutorialModal } from "../components/TutorialModal";
 import { useAuthStore } from "../store/authStore";
 
@@ -108,11 +109,11 @@ function ProfileStack() {
   );
 }
 
-// ── Tab Icon ──
-const TabIcon = ({ label, emoji, focused }: { label: string; emoji: string; focused: boolean }) => (
+// ── Tab Icon（航海志：纯文字 + 选中波形下划线，无 emoji）──
+const TabIcon = ({ label, focused }: { label: string; focused: boolean }) => (
   <View style={styles.tabIcon}>
-    <Text style={[styles.emoji, focused && styles.emojiActive]}>{emoji}</Text>
     <Text style={[styles.label, focused && styles.labelActive]} numberOfLines={1}>{label}</Text>
+    {focused ? <Waveform w={24} h={6} color={colors.accent} sw={1.6} /> : <View style={{ height: 6 }} />}
   </View>
 );
 
@@ -144,17 +145,17 @@ export function MainTabs() {
       }}
     >
       <Tab.Screen name="FriendsTab" component={FriendsStack}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="好友" emoji="🤝" focused={focused} /> }} />
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="好友" focused={focused} /> }} />
       <Tab.Screen name="PublishTab" component={PublishStack}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="发布" emoji="📝" focused={focused} /> }} />
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="发布" focused={focused} /> }} />
       <Tab.Screen name="SquareTab" component={SquareStack}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="活动广场" emoji="🎪" focused={focused} /> }} />
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="活动广场" focused={focused} /> }} />
       <Tab.Screen name="MapTab" component={MapStack}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="地图" emoji="📍" focused={focused} /> }} />
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="地图" focused={focused} /> }} />
       <Tab.Screen name="GalleryTab" component={GalleryStack}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="展柜" emoji="🏛️" focused={focused} /> }} />
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="展柜" focused={focused} /> }} />
       <Tab.Screen name="ProfileTab" component={ProfileStack}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="我" emoji="👤" focused={focused} /> }} />
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="我" focused={focused} /> }} />
     </Tab.Navigator>
     <TutorialModal visible={showTutorial} onDone={handleTutorialDone} />
     </>
@@ -175,9 +176,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
   },
-  tabIcon: { alignItems: "center", justifyContent: "center", maxWidth: 72 },
-  emoji: { fontSize: 22, opacity: 0.5 },
-  emojiActive: { opacity: 1, transform: [{ scale: 1.15 }] },
-  label: { fontSize: 10, marginTop: 2, color: colors.tabInactive, fontWeight: "500", textAlign: "center" },
+  tabIcon: { alignItems: "center", justifyContent: "center", maxWidth: 72, gap: 3 },
+  label: { fontFamily: BODY, fontSize: 13, color: colors.tabInactive, fontWeight: "500", textAlign: "center" },
   labelActive: { color: colors.tabActive, fontWeight: "700" },
 });

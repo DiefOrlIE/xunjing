@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TextInput,
   TouchableOpacity, Switch, Alert, ActivityIndicator,
 } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { createNote } from "../../services/note.api";
 
 export function WriteNoteScreen({ route, navigation }: any) {
@@ -45,7 +45,7 @@ export function WriteNoteScreen({ route, navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>📝 写纸条</Text>
+        <Text style={styles.headerTitle}>写一张纸条</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { paddingHorizontal: spacing.xs, width: 40 },
   backText: { ...typography.h2, color: colors.primary },
-  headerTitle: { ...typography.bodyBold, color: colors.textPrimary },
+  headerTitle: { fontFamily: HAND, fontSize: 22, color: colors.ink },
   body: { flex: 1, padding: spacing.lg },
   hint: {
     ...typography.caption, color: colors.textHint, marginBottom: spacing.lg,

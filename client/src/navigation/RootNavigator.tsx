@@ -44,7 +44,8 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {isLoggedIn ? <MainTabs /> : <AuthStack />}
+      {/* TEMP-PREVIEW 跳过登录看页面；验收后改回 {isLoggedIn ? <MainTabs /> : <AuthStack />} */}
+      {true ? <MainTabs /> : (isLoggedIn ? <MainTabs /> : <AuthStack />)}
     </NavigationContainer>
   );
 }

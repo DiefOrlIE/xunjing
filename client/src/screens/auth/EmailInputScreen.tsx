@@ -5,7 +5,8 @@ import { AuthStackParamList } from "../../navigation/AuthStack";
 import { sendVerifyCode, loginWithPassword } from "../../services/auth.api";
 import api from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, SERIF } from "../../theme";
+import { WhaleMark, Waveform } from "../../theme/whaleKit";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "EmailInput">;
@@ -84,9 +85,10 @@ export function EmailInputScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
-        <Text style={styles.logo}>🏛️</Text>
+        <View style={styles.mark}><WhaleMark size={56} color={colors.primary} eye="#fff" /></View>
         <Text style={styles.title}>寻鲸</Text>
-        <Text style={styles.subtitle}>使用南京大学邮箱登录</Text>
+        <Waveform w={150} h={11} color={colors.secondary} sw={1.6} opacity={0.8} />
+        <Text style={styles.subtitle}>循着鲸歌，用南大邮箱登船</Text>
 
         {/* 模式切换 */}
         <View style={styles.modeSwitch}>
@@ -149,17 +151,17 @@ export function EmailInputScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, justifyContent: "center" },
   content: { paddingHorizontal: spacing.xxxl, alignItems: "center" },
-  logo: { fontSize: 72, marginBottom: spacing.lg },
-  title: { ...typography.h1, color: colors.textPrimary, marginBottom: spacing.sm, textAlign: "center" },
-  subtitle: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xl, textAlign: "center" },
-  modeSwitch: { flexDirection: "row", backgroundColor: colors.surfaceAlt, borderRadius: borderRadius.xl, padding: 4, marginBottom: spacing.xxl, width: "100%" },
-  modeBtn: { flex: 1, paddingVertical: spacing.sm, borderRadius: borderRadius.lg, alignItems: "center" },
+  mark: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.primary + "14", borderWidth: 1, borderColor: colors.primary + "44", alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
+  title: { fontFamily: HAND, fontSize: 36, color: colors.ink, marginBottom: 2, textAlign: "center" },
+  subtitle: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.textSecondary, marginTop: 4, marginBottom: spacing.xl, textAlign: "center" },
+  modeSwitch: { flexDirection: "row", backgroundColor: colors.primary + "10", borderRadius: 8, padding: 3, marginBottom: spacing.xxl, width: "100%" },
+  modeBtn: { flex: 1, paddingVertical: spacing.sm, borderRadius: 6, alignItems: "center" },
   modeBtnActive: { backgroundColor: colors.primary },
   modeText: { ...typography.bodyBold, color: colors.textSecondary, fontSize: 14 },
   modeTextActive: { color: colors.textOnPrimary },
-  inputContainer: { width: "100%", backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderWidth: 2, borderColor: colors.border, marginBottom: spacing.lg, overflow: "hidden" },
+  inputContainer: { width: "100%", backgroundColor: colors.card, borderRadius: 6, borderWidth: 1, borderColor: colors.primary + "33", marginBottom: spacing.lg, overflow: "hidden" },
   input: { ...typography.body, paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, color: colors.textPrimary },
-  button: { width: "100%", backgroundColor: colors.primary, borderRadius: borderRadius.xl, paddingVertical: spacing.lg, alignItems: "center", marginBottom: spacing.lg, shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  button: { width: "100%", backgroundColor: colors.primary, borderRadius: 6, borderWidth: 1.5, borderColor: colors.primaryDark, paddingVertical: spacing.lg, alignItems: "center", marginBottom: spacing.lg },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { ...typography.button, color: colors.textOnPrimary },
   hint: { ...typography.caption, color: colors.textHint, textAlign: "center" },

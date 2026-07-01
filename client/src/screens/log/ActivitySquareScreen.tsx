@@ -3,8 +3,17 @@ import {
   View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator,
   RefreshControl, TextInput, ScrollView,
 } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, BODY, SERIF } from "../../theme";
+import { WhaleMark } from "../../theme/whaleKit";
 import { listEvents, getEventTypes, getMyEvents } from "../../services/event.api";
+
+// 票根状态橡皮章色
+const STATUS_STAMP: Record<string, string> = {
+  recruiting: colors.green, waiting: colors.gold, ongoing: colors.accent, finished: colors.textHint, cancelled: colors.textHint,
+};
+const STATUS_TEXT: Record<string, string> = {
+  recruiting: "集结中", waiting: "待启航", ongoing: "同游中", finished: "已靠岸", cancelled: "已取消",
+};
 
 // ── 常量 ──
 const EMPTY_EVENTS: any[] = [];
@@ -16,44 +25,27 @@ const eventStyles = StyleSheet.create({
   listContent: { padding: spacing.md, paddingBottom: 100 },
   card: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
+    backgroundColor: colors.card,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: colors.line,
     marginBottom: spacing.sm,
     overflow: "hidden",
     elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
   },
-  typeBar: { width: 4 },
-  cardBody: { flex: 1, padding: spacing.md, gap: spacing.xs },
-  cardTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  typeName: {
-    ...typography.small,
-    fontWeight: "700",
-    color: colors.textSecondary,
-  },
-  statusBadge: {
-    ...typography.caption,
-    fontWeight: "700",
-  },
-  title: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-  },
-  cardMeta: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  metaItem: {
-    ...typography.caption,
-    color: colors.textHint,
-  },
+  boardingStrip: { width: 26, alignItems: "center", justifyContent: "center" },
+  boardingText: { fontFamily: BODY, fontSize: 8, fontWeight: "800", color: "#fff", letterSpacing: 2, transform: [{ rotate: "-90deg" }] },
+  cardBody: { flex: 1, paddingVertical: 10, paddingHorizontal: 12, paddingRight: 64, gap: 3, borderLeftWidth: 1, borderStyle: "dashed", borderLeftColor: colors.faded, position: "relative" },
+  noLine: { fontFamily: BODY, fontSize: 8.5, fontWeight: "700", color: colors.faded, letterSpacing: 1 },
+  title: { fontFamily: HAND, fontSize: 19, color: colors.ink, lineHeight: 22 },
+  cardMeta: { flexDirection: "row", gap: spacing.md, marginTop: 2 },
+  metaItem: { ...typography.caption, color: colors.textHint },
+  stamp: { position: "absolute", right: 8, top: 10, borderWidth: 1.5, borderRadius: 3, paddingHorizontal: 7, paddingVertical: 1, transform: [{ rotate: "-7deg" }] },
+  stampText: { fontFamily: BODY, fontSize: 10.5, fontWeight: "800", letterSpacing: 1 },
   emptyWrapper: { flex: 1 },
   emptyInner: {
     flex: 1,
@@ -119,35 +111,32 @@ const EventList = memo(function EventList({
   const renderEventCard = useCallback(({ item }: { item: any }) => {
     const typeInfo = item.typeId || {};
     const typeColor = typeInfo.color || colors.primary;
+    const stamp = STATUS_STAMP[item.status] || colors.textHint;
+    const stampText = STATUS_TEXT[item.status] || item.status;
     return (
       <TouchableOpacity
         style={eventStyles.card}
         onPress={() => onPressEvent(item._id)}
-        activeOpacity={0.7}
+        activeOpacity={0.85}
       >
-        <View style={[eventStyles.typeBar, { backgroundColor: typeColor }]} />
+        <View style={[eventStyles.boardingStrip, { backgroundColor: typeColor }]}>
+          <Text style={eventStyles.boardingText}>BOARDING</Text>
+        </View>
         <View style={eventStyles.cardBody}>
-          <View style={eventStyles.cardTop}>
-            <Text style={eventStyles.typeName}>{typeInfo.iconUrl || "📋"} {typeInfo.name || "活动"}</Text>
-            <Text style={[eventStyles.statusBadge, {
-              color: item.status === "recruiting" ? colors.success :
-                     item.status === "ongoing" ? colors.info : colors.warning
-            }]}>
-              {item.status === "recruiting" ? "🟢 招募中" :
-               item.status === "waiting" ? "⏳ 等待开始" :
-               item.status === "ongoing" ? "🔵 进行中" : item.status}
-            </Text>
-          </View>
+          <Text style={eventStyles.noLine}>NO. {String(item._id || "").slice(-4).toUpperCase()} · {typeInfo.name || "活动"} · 同游</Text>
           <Text style={eventStyles.title} numberOfLines={1}>{item.title || "未命名活动"}</Text>
           <View style={eventStyles.cardMeta}>
-            <Text style={eventStyles.metaItem}>📍 {item.locationText || "待定"}</Text>
-            <Text style={eventStyles.metaItem}>👤 {item.currentParticipants || 0}/{item.capacity || "∞"}</Text>
+            <Text style={eventStyles.metaItem}>{item.locationText || "待定"}</Text>
+            <Text style={eventStyles.metaItem}>{item.currentParticipants || 0}/{item.capacity || "∞"} 人</Text>
           </View>
           <Text style={eventStyles.metaItem}>
-            🕐 {item.startTime ? new Date(item.startTime).toLocaleString("zh-CN", {
+            {item.startTime ? new Date(item.startTime).toLocaleString("zh-CN", {
               month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"
             }) : "待定"}
           </Text>
+          <View style={[eventStyles.stamp, { borderColor: stamp }]}>
+            <Text style={[eventStyles.stampText, { color: stamp }]}>{stampText}</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -163,7 +152,7 @@ const EventList = memo(function EventList({
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
       >
-        <Text style={{ fontSize: 48 }}>📭</Text>
+        <WhaleMark size={44} color={colors.primary} eye="#fff" />
         <Text style={{ color: colors.textHint, marginTop: spacing.md }}>
           {keyword || selectedTypeId ? "没有匹配的活动" : "暂无招募中的活动"}
         </Text>
@@ -172,7 +161,7 @@ const EventList = memo(function EventList({
           onPress={onNavigatePublish}
           activeOpacity={0.7}
         >
-          <Text style={eventStyles.goPublishText}>📝 去发布一个吧</Text>
+          <Text style={eventStyles.goPublishText}>去发起一程同游</Text>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -221,7 +210,7 @@ const ScrollableChips = memo(function ScrollableChips({
             onPress={() => onSelect(id)}
             activeOpacity={0.7}
           >
-            <Text style={chipStyles.emoji}>{t.iconUrl || "📋"}</Text>
+            {t.iconUrl ? <Text style={chipStyles.emoji}>{t.iconUrl}</Text> : null}
             <Text style={[chipStyles.label, active && { color: chipColor, fontWeight: "800" }]}>
               {t.name || "全部"}
             </Text>
@@ -316,38 +305,33 @@ const MyEventsView = memo(function MyEventsView({
   const renderCard = (item: any, isActive: boolean) => {
     const typeInfo = item.typeId || {};
     const typeColor = typeInfo.color || colors.primary;
+    const stamp = STATUS_STAMP[item.status] || colors.textHint;
+    const stampText = STATUS_TEXT[item.status] || item.status;
     return (
       <TouchableOpacity
         key={item._id}
-        style={[myViewStyles.card, isActive ? myViewStyles.activeCard : myViewStyles.historyCard]}
+        style={[eventStyles.card, { marginHorizontal: spacing.md }, !isActive && { opacity: 0.6 }]}
         onPress={() => onPressEvent(item._id)}
-        activeOpacity={0.7}
+        activeOpacity={0.85}
       >
-        <View style={myViewStyles.cardBody}>
-          <View style={myViewStyles.cardTop}>
-            <Text style={myViewStyles.typeName}>{typeInfo.iconUrl || "📋"} {typeInfo.name || "活动"}</Text>
-            <Text style={[myViewStyles.statusBadge, {
-              color: item.status === "recruiting" ? colors.success :
-                     item.status === "ongoing" ? colors.info :
-                     item.status === "finished" ? colors.textHint : colors.warning
-            }]}>
-              {item.status === "recruiting" ? "🟢 招募中" :
-               item.status === "waiting" ? "⏳ 等待开始" :
-               item.status === "ongoing" ? "🔵 进行中" :
-               item.status === "finished" ? "✅ 已结束" :
-               item.status === "cancelled" ? "❌ 已取消" : item.status}
-            </Text>
+        <View style={[eventStyles.boardingStrip, { backgroundColor: isActive ? typeColor : colors.faded }]}>
+          <Text style={eventStyles.boardingText}>{isActive ? "BOARDING" : "ARCHIVE"}</Text>
+        </View>
+        <View style={eventStyles.cardBody}>
+          <Text style={eventStyles.noLine}>NO. {String(item._id || "").slice(-4).toUpperCase()} · {typeInfo.name || "活动"} · 同游</Text>
+          <Text style={eventStyles.title} numberOfLines={1}>{item.title || "未命名活动"}</Text>
+          <View style={eventStyles.cardMeta}>
+            <Text style={eventStyles.metaItem}>{item.locationText || "待定"}</Text>
+            <Text style={eventStyles.metaItem}>{item.currentParticipants || 0}/{item.capacity || "∞"} 人</Text>
           </View>
-          <Text style={myViewStyles.title} numberOfLines={1}>{item.title || "未命名活动"}</Text>
-          <View style={myViewStyles.cardMeta}>
-            <Text style={myViewStyles.metaItem}>📍 {item.locationText || "待定"}</Text>
-            <Text style={myViewStyles.metaItem}>👤 {item.currentParticipants || 0}/{item.capacity || "∞"}</Text>
-          </View>
-          <Text style={myViewStyles.metaItem}>
-            🕐 {item.startTime ? new Date(item.startTime).toLocaleString("zh-CN", {
+          <Text style={eventStyles.metaItem}>
+            {item.startTime ? new Date(item.startTime).toLocaleString("zh-CN", {
               month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"
             }) : "待定"}
           </Text>
+          <View style={[eventStyles.stamp, { borderColor: stamp }]}>
+            <Text style={[eventStyles.stampText, { color: stamp }]}>{stampText}</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -361,14 +345,14 @@ const MyEventsView = memo(function MyEventsView({
         contentContainerStyle={myViewStyles.emptyInner}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
       >
-        <Text style={{ fontSize: 48 }}>📭</Text>
+        <WhaleMark size={44} color={colors.primary} eye="#fff" />
         <Text style={{ color: colors.textHint, marginTop: spacing.md }}>暂无参与的活动</Text>
         <TouchableOpacity
           style={{ marginTop: spacing.xl, backgroundColor: colors.primary, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: borderRadius.lg }}
           onPress={onNavigatePublish}
           activeOpacity={0.7}
         >
-          <Text style={{ ...typography.bodyBold, color: "#FFF" }}>📝 去发布一个吧</Text>
+          <Text style={{ ...typography.bodyBold, color: "#FFF" }}>去发起一程同游</Text>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -415,17 +399,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background },
   header: {
-    paddingTop: 56,
+    paddingTop: 52,
     paddingBottom: spacing.sm,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.surface,
-    borderBottomLeftRadius: borderRadius.xl,
-    borderBottomRightRadius: borderRadius.xl,
-    elevation: 4,
+    backgroundColor: colors.background,
     zIndex: 10,
   },
-  headerTitle: { ...typography.h2, color: colors.textPrimary },
-  headerSub: { ...typography.caption, color: colors.textHint, marginTop: 2 },
+  cartouche: { alignItems: "center", paddingTop: 4, paddingBottom: 2 },
+  cartoucheTitle: { fontFamily: SERIF, fontWeight: "600", fontSize: 25, color: colors.ink, letterSpacing: 2 },
+  cartoucheRuleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 3 },
+  cartoucheRule: { height: 1, width: 26, backgroundColor: colors.accent },
+  cartoucheEn: { fontFamily: BODY, fontSize: 9, fontWeight: "700", color: colors.accent, letterSpacing: 3 },
+  headerSub: { ...typography.caption, color: colors.textHint, marginTop: 6, textAlign: "center" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -643,7 +628,14 @@ export function ActivitySquareScreen({ navigation }: any) {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🎪 活动广场</Text>
+        <View style={styles.cartouche}>
+          <Text style={styles.cartoucheTitle}>活动广场</Text>
+          <View style={styles.cartoucheRuleRow}>
+            <View style={styles.cartoucheRule} />
+            <Text style={styles.cartoucheEn}>TICKET STUBS</Text>
+            <View style={styles.cartoucheRule} />
+          </View>
+        </View>
         {/* 分段控件 */}
         <View style={styles.segmentRow}>
           <TouchableOpacity
@@ -651,7 +643,7 @@ export function ActivitySquareScreen({ navigation }: any) {
             onPress={() => { setShowMyEvents(false); }}
             activeOpacity={0.7}
           >
-            <Text style={[styles.segmentText, !showMyEvents && styles.segmentTextActive]}>🎪 活动广场</Text>
+            <Text style={[styles.segmentText, !showMyEvents && styles.segmentTextActive]}>活动广场</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.segmentTab, showMyEvents && styles.segmentTabActive]}
@@ -661,7 +653,7 @@ export function ActivitySquareScreen({ navigation }: any) {
             }}
             activeOpacity={0.7}
           >
-            <Text style={[styles.segmentText, showMyEvents && styles.segmentTextActive]}>🤝 我参与的</Text>
+            <Text style={[styles.segmentText, showMyEvents && styles.segmentTextActive]}>我参与的</Text>
           </TouchableOpacity>
         </View>
         {!showMyEvents && (
@@ -674,7 +666,7 @@ export function ActivitySquareScreen({ navigation }: any) {
         <View style={styles.searchBar}>
           <TextInput
             style={styles.searchInput}
-            placeholder="🔍 搜索活动名称、地点..."
+            placeholder="搜索活动名称、地点..."
             placeholderTextColor={colors.textHint}
             value={inputText}
             onChangeText={handleChangeText}
@@ -698,7 +690,7 @@ export function ActivitySquareScreen({ navigation }: any) {
         <View style={styles.typeFilter}>
           <ScrollableChips
             items={[
-              { _id: null, name: "全部", iconUrl: "🎯", color: "#666" },
+              { _id: null, name: "全部", iconUrl: "", color: colors.primary },
               ...types,
             ]}
             selectedId={selectedTypeId}

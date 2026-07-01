@@ -2,7 +2,8 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from "react-native";
 import { updateProfile } from "../../services/user.api";
 import { useAuthStore } from "../../store/authStore";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, SERIF } from "../../theme";
+import { WhaleMark, Waveform } from "../../theme/whaleKit";
 
 export function WelcomeScreen() {
   const [nickname, setNickname] = useState("");
@@ -36,9 +37,11 @@ export function WelcomeScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
-        <Text style={styles.emoji}>🎉</Text>
-        <Text style={styles.title}>欢迎加入！</Text>
-        <Text style={styles.subtitle}>设置你的昵称，开始校园探索之旅</Text>
+        <View style={styles.mark}><WhaleMark size={58} color={colors.primary} eye="#fff" /></View>
+        <Text style={styles.title}>欢迎登船</Text>
+        <Text style={styles.titleEn}>welcome aboard</Text>
+        <View style={{ marginVertical: spacing.md }}><Waveform w={180} h={12} color={colors.secondary} sw={1.6} opacity={0.8} /></View>
+        <Text style={styles.subtitle}>取个名字，开始你的寻鲸航程</Text>
 
         <View style={styles.inputContainer}>
           <TextInput
@@ -80,14 +83,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xxxl,
     alignItems: "center",
   },
-  emoji: {
-    fontSize: 72,
+  mark: {
+    width: 92, height: 92, borderRadius: 46, backgroundColor: colors.primary + "14",
+    borderWidth: 1, borderColor: colors.primary + "44", alignItems: "center", justifyContent: "center",
     marginBottom: spacing.lg,
   },
   title: {
-    ...typography.h1,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    fontFamily: HAND,
+    fontSize: 34,
+    color: colors.ink,
+  },
+  titleEn: {
+    fontFamily: SERIF,
+    fontStyle: "italic",
+    fontSize: 14,
+    color: colors.secondary,
+    marginTop: 2,
   },
   subtitle: {
     ...typography.body,
@@ -97,10 +108,10 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: "100%",
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-    borderColor: colors.border,
+    backgroundColor: colors.card,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary + "33",
     marginBottom: spacing.sm,
     overflow: "hidden",
   },
@@ -119,15 +130,12 @@ const styles = StyleSheet.create({
   button: {
     width: "100%",
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.xl,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.primaryDark,
     paddingVertical: spacing.lg,
     alignItems: "center",
     marginBottom: spacing.lg,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   buttonDisabled: {
     opacity: 0.5,

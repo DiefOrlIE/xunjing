@@ -4,7 +4,7 @@ import {
   RefreshControl, Alert, TextInput,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, SERIF } from "../../theme";
 import { Avatar } from "../../components/Avatar";
 import { EmptyState } from "../../components/EmptyState";
 import { getFriends, getFriendRequests, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } from "../../services/friend.api";
@@ -99,7 +99,10 @@ export function FriendListScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🤝 好友</Text>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 9, marginBottom: spacing.sm }}>
+          <Text style={styles.headerTitle}>同船好友</Text>
+          <Text style={styles.headerEn}>shipmates</Text>
+        </View>
         <View style={styles.headerBtns}>
           <TouchableOpacity
             style={[styles.headerBtn, requests.length > 0 && styles.headerBtnAlert]}
@@ -192,11 +195,11 @@ export function FriendListScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
-    paddingTop: 56, paddingBottom: spacing.md, paddingHorizontal: spacing.lg,
-    backgroundColor: colors.surface, borderBottomLeftRadius: borderRadius.xl, borderBottomRightRadius: borderRadius.xl,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 6, zIndex: 10,
+    paddingTop: 54, paddingBottom: spacing.md, paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background, zIndex: 10,
   },
-  headerTitle: { ...typography.h2, color: colors.textPrimary, marginBottom: spacing.sm },
+  headerTitle: { fontFamily: HAND, fontSize: 27, color: colors.ink, lineHeight: 30 },
+  headerEn: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.secondary, paddingBottom: 3 },
   headerBtns: { flexDirection: "row", gap: spacing.sm },
   headerBtn: {
     flex: 1, backgroundColor: colors.surfaceAlt, borderRadius: borderRadius.lg, paddingVertical: spacing.sm, alignItems: "center",

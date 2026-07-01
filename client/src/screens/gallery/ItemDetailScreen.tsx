@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Animated } from "react-native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { RarityBadge } from "../../components/RarityBadge";
 import { RARITY_COLORS } from "../../utils/constants";
 import { fixImageUrl } from "../../services/api";
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 60 },
   backText: { ...typography.body, color: colors.primary, fontWeight: "600" },
-  headerTitle: { ...typography.bodyBold, color: colors.textPrimary, flex: 1, textAlign: "center" },
+  headerTitle: { fontFamily: HAND, fontSize: 20, color: colors.ink, flex: 1, textAlign: "center" },
   scrollView: { flex: 1 },
   scrollContent: { padding: spacing.xl, paddingBottom: 120 },
   imageContainer: {
