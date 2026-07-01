@@ -21,13 +21,48 @@ const _tLat = (x: number, y: number): number => { let r = -100 + 2*x + 3*y + 0.2
 const _tLng = (x: number, y: number): number => { let r = 300 + x + 2*y + 0.1*x*x + 0.1*x*y + 0.1*Math.sqrt(Math.abs(x)); r += (20*Math.sin(6*x*PI)+20*Math.sin(2*x*PI))*2/3; r += (20*Math.sin(x*PI)+40*Math.sin(x/3*PI))*2/3; r += (150*Math.sin(x/12*PI)+300*Math.sin(x/30*PI))*2/3; return r; };
 const wgs84ToGcj02 = (lat: number, lng: number) => { const dLat = _tLat(lng-105, lat-35); const dLng = _tLng(lng-105, lat-35); const rad = lat/180*PI; let m = Math.sin(rad); m = 1-EE*m*m; const s = Math.sqrt(m); return { lat: lat+(dLat*180)/((A*(1-EE))/(m*s)*PI), lng: lng+(dLng*180)/(A/s*Math.cos(rad)*PI) }; };
 
-let L: any = null;
-const loadLeaflet = () => new Promise<any>((resolve) => {
+// GCJ-02 → WGS-84（近似反向纠偏，供在 WGS-84 矢量图上显示 GCJ 数据/定位）
+const gcj02ToWgs84 = (lat: number, lng: number) => { const g = wgs84ToGcj02(lat, lng); return { lat: lat * 2 - g.lat, lng: lng * 2 - g.lng }; };
+
+let ML: any = null; // maplibre-gl
+const OCEAN = { land: "#E9F1ED", land2: "#E1EBE6", water: "#2C9A92", green: "#C8E2CC", bldg: "#CCDDD8", bldgO: "#8FB6AF", road: "#FFFFFF", roadCase: "#7DADA7", rail: "#A9C4BE", ink: "#143A3D", halo: "#FFFFFF", boundary: "#9FC0BA" };
+
+const loadMapLibre = () => new Promise<any>((resolve) => {
   if (typeof window === "undefined") return resolve(null);
-  if ((window as any).L) return resolve((window as any).L);
-  const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.css"; document.head.appendChild(link);
-  const s = document.createElement("script"); s.src = "https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.js"; s.onload = () => resolve((window as any).L); s.onerror = () => resolve(null); document.head.appendChild(s);
+  if ((window as any).maplibregl) return resolve((window as any).maplibregl);
+  const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css"; document.head.appendChild(link);
+  if (!document.getElementById("whale-mk-css")) {
+    const st = document.createElement("style"); st.id = "whale-mk-css";
+    st.textContent = ".wmk{position:relative;width:0;height:0}.wmk .ping{position:absolute;left:0;top:0;width:16px;height:16px;margin:-8px;border-radius:50%;background:var(--c);animation:wping 2.4s ease-out infinite}.wmk .ping.b{animation-delay:1.2s}.wmk .core{position:absolute;left:0;top:0;width:15px;height:15px;margin:-7.5px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}.wmk .tag{position:absolute;left:0;top:11px;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:var(--c);text-shadow:0 1px 2px #fff,0 0 3px #fff}.wmk.me .core{width:19px;height:19px;margin:-9.5px}.wmk.me .halo{position:absolute;left:0;top:0;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(44,130,201,.14);border:1px solid rgba(44,130,201,.35)}@keyframes wping{0%{transform:scale(.5);opacity:.55}100%{transform:scale(3);opacity:0}}";
+    document.head.appendChild(st);
+  }
+  const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"; s.onload = () => resolve((window as any).maplibregl); s.onerror = () => resolve(null); document.head.appendChild(s);
 });
+
+// 逐图层重上色为海洋皮肤（水=海蓝/陆=浅纸/路=白线青描边/楼=独立色块深描边/地名=深墨白描边）
+function recolorMap(map: any) {
+  const layers = (map.getStyle() && map.getStyle().layers) || [];
+  layers.forEach((ly: any) => {
+    const id = ly.id.toLowerCase(), sl = (ly["source-layer"] || "").toLowerCase(), ty = ly.type;
+    try {
+      if (ty === "background") { map.setPaintProperty(ly.id, "background-color", OCEAN.land); return; }
+      if (sl === "water" || sl === "waterway") { if (ty === "fill") map.setPaintProperty(ly.id, "fill-color", OCEAN.water); if (ty === "line") map.setPaintProperty(ly.id, "line-color", OCEAN.water); return; }
+      if (sl === "building") { if (ty === "fill") { map.setPaintProperty(ly.id, "fill-color", OCEAN.bldg); map.setPaintProperty(ly.id, "fill-outline-color", OCEAN.bldgO); } if (ty === "fill-extrusion") map.setPaintProperty(ly.id, "fill-extrusion-color", OCEAN.bldg); return; }
+      if (sl === "park" || /wood|grass|forest|park|garden|pitch|golf/.test(id)) { if (ty === "fill") map.setPaintProperty(ly.id, "fill-color", OCEAN.green); if (ty === "line") map.setPaintProperty(ly.id, "line-color", OCEAN.green); return; }
+      if (sl === "landuse" || sl === "landcover") { if (ty === "fill") map.setPaintProperty(ly.id, "fill-color", OCEAN.land2); return; }
+      if (sl === "transportation") { if (ty === "line") { if (/rail/.test(id)) map.setPaintProperty(ly.id, "line-color", OCEAN.rail); else if (/casing|outline/.test(id)) map.setPaintProperty(ly.id, "line-color", OCEAN.roadCase); else map.setPaintProperty(ly.id, "line-color", OCEAN.road); } if (ty === "fill") map.setPaintProperty(ly.id, "fill-color", OCEAN.road); return; }
+      if (sl === "boundary") { if (ty === "line") map.setPaintProperty(ly.id, "line-color", OCEAN.boundary); return; }
+      if (ty === "symbol") { map.setPaintProperty(ly.id, "text-color", OCEAN.ink); map.setPaintProperty(ly.id, "text-halo-color", OCEAN.halo); map.setPaintProperty(ly.id, "text-halo-width", 1.4); }
+    } catch (e) {}
+  });
+}
+
+// marker DOM 元素（涟漪 + 核心 + 标签），me=蓝色定位点
+function mkEl(color: string, tag: string, me?: boolean) {
+  const d = document.createElement("div"); d.className = "wmk" + (me ? " me" : ""); (d.style as any).setProperty("--c", color);
+  d.innerHTML = (me ? '<span class="halo"></span>' : "") + '<span class="ping"></span><span class="ping b"></span><span class="core"></span>' + (tag ? '<span class="tag">' + tag + "</span>" : "");
+  return d;
+}
 
 export function MapScreen() {
   const navigation = useNavigation<any>();
@@ -73,12 +108,17 @@ export function MapScreen() {
   }, []);
 
   useEffect(() => { if (!divRef.current || mapRef.current) return; let c = false;
-    loadLeaflet().then((leaf) => { if (c || !leaf || !divRef.current) return; L = leaf;
-      const ct = CAMPUS_CENTERS[campus];
-      const map = L.map(divRef.current, { center: [ct.lat, ct.lng], zoom: ct.zoom, zoomControl: false, attributionControl: false });
-      L.tileLayer("https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}", { subdomains: ["1","2","3","4"], maxZoom: 18, minZoom: 3 }).addTo(map);
-      L.control.zoom({ position: "bottomright" }).addTo(map); markersRef.current = L.layerGroup().addTo(map);
-      mapRef.current = map; setMapReady(true); setTimeout(() => { map.invalidateSize(); const b = bounds[campus]; map.fitBounds([[b.minLat, b.minLng], [b.maxLat, b.maxLng]]); }, 200);
+    loadMapLibre().then((ml) => { if (c || !ml || !divRef.current) return; ML = ml;
+      const ct = CAMPUS_CENTERS[campus]; const w0 = gcj02ToWgs84(ct.lat, ct.lng);
+      const map = new ml.Map({ container: divRef.current, style: "https://tiles.openfreemap.org/styles/liberty", center: [w0.lng, w0.lat], zoom: ct.zoom, attributionControl: false });
+      map.addControl(new ml.NavigationControl({ showCompass: false }), "bottom-right");
+      map.on("load", () => {
+        recolorMap(map);
+        const b = bounds[campus]; const sw = gcj02ToWgs84(b.minLat, b.minLng), ne = gcj02ToWgs84(b.maxLat, b.maxLng);
+        try { map.fitBounds([[sw.lng, sw.lat], [ne.lng, ne.lat]], { padding: 40, duration: 0 }); } catch (e) {}
+      });
+      markersRef.current = []; mapRef.current = map; setMapReady(true);
+      setTimeout(() => { try { map.resize(); } catch (e) {} }, 250);
     }); return () => { c = true; if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, []);
 
@@ -88,12 +128,13 @@ export function MapScreen() {
     let first = true; let dead = false; let watchId = 0;
 
     const updatePos = (lat: number, lng: number) => {
+      // lat,lng = 浏览器原始 WGS-84。显示用 WGS；逻辑/socket/距离用 GCJ-02（不动）
       const gcj = wgs84ToGcj02(lat, lng);
-      setGpsLabel(`📍 ${gcj.lat.toFixed(6)}, ${gcj.lng.toFixed(6)}`); setUserLocation(gcj);
-      if (mapRef.current && L) { if (userMarkerRef.current) mapRef.current.removeLayer(userMarkerRef.current);
-        const icon = L.divIcon({ className: "", html: '<div style="width:22px;height:22px;background:#2C82C9;border:4px solid #fff;border-radius:50%;box-shadow:0 0 16px rgba(44,130,201,0.75);"></div>', iconSize: [30,30], iconAnchor: [15,15] });
-        userMarkerRef.current = L.marker([gcj.lat, gcj.lng], { icon, zIndexOffset: 9999 }).addTo(mapRef.current);
-        /* GPS蓝点仅显示位置，不自动移动地图视角 */
+      setGpsLabel(`${gcj.lat.toFixed(6)}, ${gcj.lng.toFixed(6)}`); setUserLocation(gcj);
+      if (mapRef.current && ML) {
+        if (userMarkerRef.current) userMarkerRef.current.remove();
+        userMarkerRef.current = new ML.Marker({ element: mkEl(colors.primary, "你在这", true), anchor: "center" }).setLngLat([lng, lat]).addTo(mapRef.current);
+        /* 蓝点仅显示位置，不自动移动视角 */
       }
       const s = getCurrentSocket(); if (s?.connected) s.emit("location_update", { lat: gcj.lat, lng: gcj.lng, campus });
     };
@@ -129,31 +170,28 @@ export function MapScreen() {
     s.on("note_removed", (d: any) => { setNotes(p => p.filter(n => n._id !== d.noteId)); if (markersRef.current && L) { updateMarkers(chests, events, notes.filter(n => n._id !== d.noteId)); } });
   })(); return () => { const s = socketRef.current; if (s) { s.off("chest_open_result"); s.off("chest_player_count"); s.off("pickup_note_result"); s.off("note_removed"); } }; }, []);
 
-  const updateMarkers = (ch: any[], ev: any[], nt: any[] = []) => { if (!markersRef.current || !L) return; markersRef.current.clearLayers();
+  const updateMarkers = (ch: any[], ev: any[], nt: any[] = []) => {
+    if (!mapRef.current || !ML) return;
+    (markersRef.current || []).forEach((m: any) => m.remove()); markersRef.current = [];
+    const add = (latGcj: number, lngGcj: number, color: string, tag: string, onClick: () => void) => {
+      const w = gcj02ToWgs84(latGcj, lngGcj);
+      const el = mkEl(color, tag, false); el.style.cursor = "pointer";
+      el.addEventListener("click", (ev2) => { ev2.stopPropagation(); onClick(); });
+      const m = new ML.Marker({ element: el, anchor: "center" }).setLngLat([w.lng, w.lat]).addTo(mapRef.current);
+      markersRef.current.push(m);
+    };
     ch.forEach((c, i) => { const a = c.type === "advanced";
-      const svg = a ? `<div style="filter:drop-shadow(0 3px 12px ${colors.accent}73)"><svg viewBox="0 0 40 42" width="40" height="42"><rect x="3" y="10" width="34" height="12" rx="6" fill="${colors.accent}" stroke="#C2452F" stroke-width="2.5"/><rect x="3" y="10" width="34" height="5" rx="6" fill="#FBC0B2"/><rect x="3" y="20" width="34" height="20" rx="6" fill="#E0563F" stroke="#C2452F" stroke-width="2.5"/><circle cx="20" cy="30" r="4" fill="${colors.gold}"/></svg></div>` : `<div style="filter:drop-shadow(0 3px 6px rgba(20,50,60,0.3))"><svg viewBox="0 0 36 38" width="36" height="38"><rect x="2" y="8" width="32" height="12" rx="6" fill="${colors.gold}" stroke="#8A6A1E" stroke-width="2.5"/><rect x="2" y="18" width="32" height="18" rx="6" fill="#D2982E" stroke="#8A6A1E" stroke-width="2.5"/><circle cx="18" cy="27" r="4" fill="#235F96"/></svg></div>`;
-      const icon = L.divIcon({ className: "", html: svg, iconSize: a ? [40,42] : [36,38], iconAnchor: a ? [20,42] : [18,38] });
-      const m = L.marker([c.coordinates.lat, c.coordinates.lng], { icon }); m.on("click", () => { setDialogData({ type: c.type === "advanced" ? "advancedChest" : "normalChest", data: { ...c, label: (a ? "💎#" : "📦#") + (i+1) } }); setDialogVisible(true); }); markersRef.current.addLayer(m);
+      add(c.coordinates.lat, c.coordinates.lng, a ? colors.accent : colors.gold, a ? "巨鲸落" : "鲸落", () => { setDialogData({ type: a ? "advancedChest" : "normalChest", data: { ...c, label: "#" + (i + 1) } }); setDialogVisible(true); });
     });
-    ev.forEach((e) => { const ec = e.typeId?.color || colors.primary;
-      const pin = `<div style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))"><svg viewBox="0 0 28 36" width="28" height="36"><path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.3 21.7 0 14 0z" fill="${ec}" stroke="#fff" stroke-width="2"/><circle cx="14" cy="13" r="5" fill="#fff"/></svg></div>`;
-      const icon = L.divIcon({ className: "", html: pin, iconSize: [28,36], iconAnchor: [14,36] });
-      const m = L.marker([e.meetCoordinates.lat, e.meetCoordinates.lng], { icon }); m.on("click", () => { setDialogData({ type: "event", data: e }); setDialogVisible(true); }); markersRef.current.addLayer(m);
-    });
-    // 纸条 markers
-    nt.forEach((n: any) => {
-      const noteHtml = '<div style="filter:drop-shadow(0 3px 8px rgba(255,183,77,0.5))"><svg viewBox="0 0 32 40" width="32" height="40"><rect x="3" y="4" width="26" height="32" rx="3" fill="#FFE082" stroke="#F9A825" stroke-width="2"/><line x1="8" y1="12" x2="24" y2="12" stroke="#F9A825" stroke-width="1.5"/><line x1="8" y1="17" x2="22" y2="17" stroke="#F9A825" stroke-width="1.5"/><line x1="8" y1="22" x2="20" y2="22" stroke="#F9A825" stroke-width="1.5"/><rect x="10" y="36" width="12" height="3" rx="1" fill="#F9A825"/></svg></div>';
-      const icon = L.divIcon({ className: "", html: noteHtml, iconSize: [32,40], iconAnchor: [16,40] });
-      const m = L.marker([n.coordinates.lat, n.coordinates.lng], { icon });
-      m.on("click", () => { setDialogData({ type: "note", data: n }); setDialogVisible(true); });
-      markersRef.current.addLayer(m);
-    });
+    ev.forEach((e) => { add(e.meetCoordinates.lat, e.meetCoordinates.lng, e.typeId?.color || colors.primary, "同游", () => { setDialogData({ type: "event", data: e }); setDialogVisible(true); }); });
+    nt.forEach((n: any) => { add(n.coordinates.lat, n.coordinates.lng, colors.gold, "纸条", () => { setDialogData({ type: "note", data: n }); setDialogVisible(true); }); });
   };
 
   const getDist = (a: number, b: number, c: number, d: number) => { const R = 6371000; const dLat = (c-a)*Math.PI/180; const dLng = (d-b)*Math.PI/180; const x = Math.sin(dLat/2)**2 + Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2; return Math.round(R*2*Math.atan2(Math.sqrt(x), Math.sqrt(1-x))); };
   const handleUnlock = async (id: string) => { const s = socketRef.current || await getSocket(); if (!s?.connected || !userLocation) return; setUnlockingChestId(id); setDialogVisible(false); s.emit("location_update", { lat: userLocation.lat, lng: userLocation.lng, campus }); setTimeout(() => s.emit("chest_open_request", { chestId: id }), 300); };
   const handlePickupNote = async (noteId: string) => { const s = socketRef.current || await getSocket(); if (!s?.connected || !userLocation) return; setDialogVisible(false); s.emit("location_update", { lat: userLocation.lat, lng: userLocation.lng, campus }); setTimeout(() => s.emit("pickup_note", { noteId }), 300); };
   const closeDialog = () => setDialogVisible(false);
+  const fitCampus = (camp: Campus) => { const b = bounds[camp]; const sw = gcj02ToWgs84(b.minLat, b.minLng), ne = gcj02ToWgs84(b.maxLat, b.maxLng); try { mapRef.current?.fitBounds([[sw.lng, sw.lat], [ne.lng, ne.lat]], { padding: 40, duration: 600 }); } catch (e) {} };
   const nc = chests.filter((c: any) => c.type === "normal"); const ac = chests.filter((c: any) => c.type === "advanced");
   const RCOLORS = RARITY_COLORS;
 
@@ -161,27 +199,26 @@ export function MapScreen() {
   return (
     <View style={S.ct}>
       <View style={S.tb}><View style={S.sw}>
-        <T onPress={() => { setCampus(Campus.GULOU); const b=bounds.gulou; mapRef.current?.fitBounds([[b.minLat,b.minLng],[b.maxLat,b.maxLng]]); }} style={[S.sb, campus === Campus.GULOU && S.sa]}><Text style={[S.st, campus === Campus.GULOU && S.sta]}>鼓楼</Text></T>
-        <T onPress={() => { setCampus(Campus.XIANLIN); const b=bounds.xianlin; mapRef.current?.fitBounds([[b.minLat,b.minLng],[b.maxLat,b.maxLng]]); }} style={[S.sb, campus === Campus.XIANLIN && S.sa]}><Text style={[S.st, campus === Campus.XIANLIN && S.sta]}>仙林</Text></T>
-        <T onPress={() => { setCampus(Campus.SUZHOU); const b=bounds.suzhou; mapRef.current?.fitBounds([[b.minLat,b.minLng],[b.maxLat,b.maxLng]]); }} style={[S.sb, campus === Campus.SUZHOU && S.sa]}><Text style={[S.st, campus === Campus.SUZHOU && S.sta]}>苏州</Text></T>
+        <T onPress={() => { setCampus(Campus.GULOU); fitCampus(Campus.GULOU); }} style={[S.sb, campus === Campus.GULOU && S.sa]}><Text style={[S.st, campus === Campus.GULOU && S.sta]}>鼓楼</Text></T>
+        <T onPress={() => { setCampus(Campus.XIANLIN); fitCampus(Campus.XIANLIN); }} style={[S.sb, campus === Campus.XIANLIN && S.sa]}><Text style={[S.st, campus === Campus.XIANLIN && S.sta]}>仙林</Text></T>
+        <T onPress={() => { setCampus(Campus.SUZHOU); fitCampus(Campus.SUZHOU); }} style={[S.sb, campus === Campus.SUZHOU && S.sa]}><Text style={[S.st, campus === Campus.SUZHOU && S.sta]}>苏州</Text></T>
       </View></View>
       {gpsLabel ? (
         <View style={S.gb}>
           <Text style={S.gt}>{gpsLabel}</Text>
           {gpsLabel.startsWith("⚠") && (
             <T style={S.gr} onPress={() => {
-              setGpsLabel("🔄 重新定位中...");
+              setGpsLabel("重新定位中...");
               if (navigator?.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                   (pos) => {
                     const gcj = wgs84ToGcj02(pos.coords.latitude, pos.coords.longitude);
-                    setGpsLabel(`📍 ${gcj.lat.toFixed(6)}, ${gcj.lng.toFixed(6)}`);
+                    setGpsLabel(`${gcj.lat.toFixed(6)}, ${gcj.lng.toFixed(6)}`);
                     setUserLocation(gcj);
-                    if (mapRef.current && L) {
-                      if (userMarkerRef.current) mapRef.current.removeLayer(userMarkerRef.current);
-                      const icon = L.divIcon({ className: "", html: '<div style="width:22px;height:22px;background:#2C82C9;border:4px solid #fff;border-radius:50%;box-shadow:0 0 16px rgba(44,130,201,0.75);"></div>', iconSize: [30,30], iconAnchor: [15,15] });
-                      userMarkerRef.current = L.marker([gcj.lat, gcj.lng], { icon, zIndexOffset: 9999 }).addTo(mapRef.current);
-                      mapRef.current.setView([gcj.lat, gcj.lng], Math.max(mapRef.current.getZoom(), 16));
+                    if (mapRef.current && ML) {
+                      if (userMarkerRef.current) userMarkerRef.current.remove();
+                      userMarkerRef.current = new ML.Marker({ element: mkEl(colors.primary, "你在这", true), anchor: "center" }).setLngLat([pos.coords.longitude, pos.coords.latitude]).addTo(mapRef.current);
+                      mapRef.current.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: Math.max(mapRef.current.getZoom(), 16) });
                     }
                     const s = getCurrentSocket(); if (s?.connected) s.emit("location_update", { lat: gcj.lat, lng: gcj.lng, campus });
                   },
@@ -190,20 +227,20 @@ export function MapScreen() {
                 );
               }
             }} activeOpacity={0.7}>
-              <Text style={S.grt}>🔄 重试</Text>
+              <Text style={S.grt}>重试</Text>
             </T>
           )}
         </View>
       ) : null}
       <View style={{ flex: 1 }}>
         <View ref={divRef} style={{ flex: 1 }} />
-        <T style={S.rf} onPress={fetchAll}><Text style={{ fontWeight: "700", color: "#FFF", fontSize: 13 }}>🔄 刷新</Text></T>
+        <T style={S.rf} onPress={fetchAll}><Text style={{ fontWeight: "700", color: "#FFF", fontSize: 13 }}>刷新</Text></T>
         <View style={S.cs}>
-          <View style={S.ctr}><Text style={S.ci}>📦</Text><Text style={S.cn}>{nc.length}</Text></View>
-          <View style={[S.ctr, S.ca]}><Text style={S.ci}>💎</Text><Text style={S.cn}>{ac.length}</Text></View>
+          <View style={S.ctr}><View style={[S.dot, { backgroundColor: colors.gold }]} /><Text style={S.cn}>{nc.length}</Text></View>
+          <View style={[S.ctr, S.ca]}><View style={[S.dot, { backgroundColor: colors.accent }]} /><Text style={S.cn}>{ac.length}</Text></View>
         </View>
-        <T style={S.noteBtn} onPress={() => { if (userLocation) { (navigation as any).navigate("WriteNote", { userLocation, campus }); } }}><Text style={{ fontSize: 20 }}>📝</Text></T>
-        <T style={S.locBtn} onPress={() => { if (mapRef.current && userMarkerRef.current) { const p = userMarkerRef.current.getLatLng(); mapRef.current.setView([p.lat, p.lng], Math.max(mapRef.current.getZoom(), 16)); } }}><Text style={{ fontSize: 20 }}>📍</Text></T>
+        <T style={S.noteBtn} onPress={() => { if (userLocation) { (navigation as any).navigate("WriteNote", { userLocation, campus }); } }}><Text style={S.fabGlyph}>✎</Text></T>
+        <T style={S.locBtn} onPress={() => { if (mapRef.current && userLocation) { const w = gcj02ToWgs84(userLocation.lat, userLocation.lng); mapRef.current.flyTo({ center: [w.lng, w.lat], zoom: Math.max(mapRef.current.getZoom(), 16) }); } }}><Text style={S.fabGlyph}>◎</Text></T>
       </View>
       <Modal visible={dialogVisible} transparent animationType="fade"><T style={D.ov} activeOpacity={1} onPress={closeDialog}><T style={D.cd} activeOpacity={1} onPress={() => {}}>
         {dialogData?.type === "normalChest" && (() => { const c = dialogData.data; const dist = userLocation ? getDist(userLocation.lat, userLocation.lng, c.coordinates.lat, c.coordinates.lng) : null; const inR = dist != null && dist <= 20;
@@ -255,7 +292,7 @@ const S = StyleSheet.create({
   gb: { backgroundColor: "rgba(44,130,201,0.92)", paddingVertical: 4, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 }, gt: { color: "#fff", fontWeight: "700", fontSize: 12 }, gr: { backgroundColor: "rgba(255,255,255,0.25)", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 }, grt: { color: "#fff", fontWeight: "700", fontSize: 11 },
   rf: { position: "absolute", top: 12, left: 12, backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, elevation: 6, zIndex: 30 },
   cs: { position: "absolute", top: 12, right: 12, gap: 8, alignItems: "flex-end" },
-  ctr: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 }, ca: { borderWidth: 1.5, borderColor: colors.rarity.典藏 + "50" }, ci: { fontSize: 22 }, cn: { fontWeight: "800", fontSize: 18, color: "#333" },
+  ctr: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 }, ca: { borderWidth: 1.5, borderColor: colors.accent + "55" }, ci: { fontSize: 22 }, cn: { fontWeight: "800", fontSize: 18, color: colors.ink }, dot: { width: 12, height: 12, borderRadius: 6, marginBottom: 4 }, fabGlyph: { fontSize: 22, color: colors.primary, fontWeight: "700" },
   sqBtn: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 }, locBtn: { position: "absolute", bottom: 120, right: 12, width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.95)", justifyContent: "center", alignItems: "center", elevation: 4, zIndex: 30 }, noteBtn: { position: "absolute", bottom: 180, right: 12, width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,224,130,0.95)", justifyContent: "center", alignItems: "center", elevation: 4, zIndex: 30 },
 });
 const D = StyleSheet.create({
