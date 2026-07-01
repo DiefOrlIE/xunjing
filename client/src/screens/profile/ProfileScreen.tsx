@@ -191,84 +191,58 @@ export function ProfileScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* ── 管理员入口 ── */}
-        {isAdmin && (
-          <TouchableOpacity style={styles.adminEntry} activeOpacity={0.7} onPress={() => navigation.navigate("AdminPanel")}>
-            <Text style={styles.adminEntryText}>管理后台</Text>
-            <Text style={styles.adminEntryArrow}>›</Text>
+        {/* ── 设置列表卡 ── */}
+        <View style={styles.listCard}>
+          {/* 绑定学号（内联输入行） */}
+          <View style={styles.sidRow}>
+            <TextInput
+              style={styles.sidInput}
+              placeholder="绑定学号（用于学号登录）"
+              placeholderTextColor={colors.textHint}
+              value={studentId}
+              onChangeText={setStudentId}
+              autoCapitalize="none"
+              maxLength={20}
+            />
+            <TouchableOpacity style={styles.sidSave} onPress={async () => {
+              try { await updateProfile({ studentId: studentId.trim() }); Alert.alert("已保存", "学号已保存"); }
+              catch (e: any) { Alert.alert("失败", e?.error || ""); }
+            }} activeOpacity={0.7}>
+              <Text style={styles.sidSaveText}>保存</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.listRow} activeOpacity={0.7} onPress={() => { setNewPassword(""); setPasswordModalVisible(true); }}>
+            <Text style={styles.listRowText}>设置登录密码</Text><Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.listRow} activeOpacity={0.7} onPress={() => { const { setJustLoggedIn } = useAuthStore.getState(); setJustLoggedIn(true); }}>
+            <Text style={styles.listRowText}>查看教程</Text><Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.listRow} activeOpacity={0.7} onPress={() => navigation.navigate("Feedback")}>
+            <Text style={styles.listRowText}>问题反馈</Text><Text style={styles.chev}>›</Text>
+          </TouchableOpacity>
+          {isAdmin && (
+            <TouchableOpacity style={styles.listRow} activeOpacity={0.7} onPress={() => navigation.navigate("AdminPanel")}>
+              <Text style={[styles.listRowText, { color: colors.rarity.典藏 }]}>管理后台</Text><Text style={styles.chev}>›</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* 下载 App（仅 Web） */}
+        {Platform.OS === "web" && (
+          <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7} onPress={() => {
+            if (typeof document !== "undefined") { const a = document.createElement("a"); a.href = "/app-release.apk"; a.download = "寻鲸.apk"; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+          }}>
+            <Text style={styles.actionBtnText}>下载 App（仅限安卓）</Text>
           </TouchableOpacity>
         )}
 
-        {/* ── 绑定学号 ── */}
-        <View style={styles.studentIdRow}>
-          <TextInput
-            style={styles.studentIdInput}
-            placeholder="绑定学号（用于学号登录）"
-            placeholderTextColor={colors.textHint}
-            value={studentId}
-            onChangeText={setStudentId}
-            autoCapitalize="none"
-            maxLength={20}
-          />
-          <TouchableOpacity style={styles.saveStudentIdBtn} onPress={async () => {
-            try {
-              await updateProfile({ studentId: studentId.trim() });
-              Alert.alert("✅", "学号已保存");
-            } catch (e: any) { Alert.alert("失败", e?.error || ""); }
-          }} activeOpacity={0.7}>
-            <Text style={styles.saveStudentIdText}>保存</Text>
+        {/* 底部：退出 / 注销（分离，危险项独立） */}
+        <View style={styles.bottomActions}>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleLogout} activeOpacity={0.7}>
+            <Text style={styles.actionBtnText}>退出登录</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* ── 设置密码 ── */}
-        <TouchableOpacity
-          style={styles.setPasswordBtn}
-          onPress={() => { setNewPassword(""); setPasswordModalVisible(true); }}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.setPasswordText}>设置登录密码</Text>
-        </TouchableOpacity>
-
-        {/* ── 底部操作 ── */}
-        <View style={styles.actionsSection}>
-
-          {/* 下载App（仅Web端显示） */}
-          {Platform.OS === "web" && (
-            <TouchableOpacity
-              style={styles.feedbackButton}
-              activeOpacity={0.7}
-              onPress={() => {
-                if (typeof document !== "undefined") {
-                  const a = document.createElement("a");
-                  a.href = "/app-release.apk";
-                  a.download = "寻鲸.apk";
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                }
-              }}
-            >
-              <Text style={styles.feedbackButtonText}>下载 App（仅限安卓）</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* 问题反馈入口 */}
-          <TouchableOpacity
-            style={styles.feedbackButton}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate("Feedback")}
-          >
-            <Text style={styles.feedbackButtonText}>问题反馈</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.tutorialButton} onPress={() => { const { setJustLoggedIn } = useAuthStore.getState(); setJustLoggedIn(true); }} activeOpacity={0.7}>
-            <Text style={{ ...typography.bodyBold, color: "#FFF" }}>查看教程</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
-            <Text style={styles.logoutText}>退出登录</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount} activeOpacity={0.7}>
-            <Text style={styles.deleteText}>注销账号</Text>
+          <TouchableOpacity style={styles.dangerBtn} onPress={handleDeleteAccount} activeOpacity={0.7}>
+            <Text style={styles.dangerText}>注销账号</Text>
           </TouchableOpacity>
         </View>
 
@@ -366,7 +340,7 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     paddingBottom: 120,
     paddingHorizontal: spacing.xl,
-    alignItems: "center",
+    alignItems: "stretch",
   },
   // ── 船长证 ──
   licence: {
@@ -379,7 +353,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     overflow: "hidden",
   },
-  licenceSeal: { position: "absolute", right: 12, top: "50%", marginTop: -10, transform: [{ rotate: "-8deg" }] },
+  licenceSeal: { position: "absolute", right: 12, top: 8, transform: [{ rotate: "-8deg" }] },
   licenceHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, paddingBottom: 9, borderBottomWidth: 1, borderStyle: "dashed", borderBottomColor: colors.primary + "33" },
   licenceTitle: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.primary },
   licenceEn: { fontFamily: BODY, fontSize: 9.5, color: colors.faded, letterSpacing: 2 },
@@ -387,6 +361,19 @@ const styles = StyleSheet.create({
   roleTag: { borderWidth: 1, borderColor: colors.primary + "66", borderRadius: 3, paddingHorizontal: 7, paddingVertical: 1 },
   roleTagText: { fontFamily: BODY, fontSize: 10, fontWeight: "700", color: colors.primary },
   licenceStats: { flexDirection: "row", alignItems: "center", marginTop: 14, paddingTop: 13, borderTopWidth: 1, borderStyle: "dashed", borderTopColor: colors.primary + "33" },
+  listCard: { backgroundColor: colors.card, borderRadius: 8, borderWidth: 1, borderColor: colors.line, overflow: "hidden", marginTop: spacing.lg },
+  sidRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
+  sidInput: { flex: 1, ...typography.body, color: colors.textPrimary, paddingVertical: 4 },
+  sidSave: { backgroundColor: colors.primary, borderRadius: 6, paddingHorizontal: 14, paddingVertical: 7 },
+  sidSaveText: { ...typography.caption, fontWeight: "700", color: "#fff" },
+  listRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.line },
+  listRowText: { ...typography.body, fontSize: 14, fontWeight: "600", color: colors.ink },
+  chev: { ...typography.h3, color: colors.faded },
+  actionBtn: { backgroundColor: colors.card, borderRadius: 8, borderWidth: 1, borderColor: colors.line, paddingVertical: 14, alignItems: "center", marginTop: spacing.md },
+  actionBtnText: { ...typography.bodyBold, color: colors.sub },
+  bottomActions: { marginTop: spacing.xxl, gap: spacing.sm },
+  dangerBtn: { borderRadius: 8, borderWidth: 1, borderColor: colors.error + "66", paddingVertical: 14, alignItems: "center" },
+  dangerText: { ...typography.bodyBold, color: colors.error },
   avatarSection: {
     alignItems: "center",
     marginBottom: spacing.xxl,

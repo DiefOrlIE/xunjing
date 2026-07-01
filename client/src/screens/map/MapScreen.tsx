@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Image, Dimensions, ScrollView, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { colors, typography, spacing, borderRadius } from "../../theme";
+import { colors, typography, spacing, borderRadius, BODY } from "../../theme";
 import { Campus, CAMPUS_BOUNDS, RARITY_COLORS } from "../../utils/constants";
 import { getActiveChests } from "../../services/chest.api";
 import { getActiveNotes } from "../../services/note.api";
@@ -25,7 +25,7 @@ const wgs84ToGcj02 = (lat: number, lng: number) => { const dLat = _tLat(lng-105,
 const gcj02ToWgs84 = (lat: number, lng: number) => { const g = wgs84ToGcj02(lat, lng); return { lat: lat * 2 - g.lat, lng: lng * 2 - g.lng }; };
 
 let ML: any = null; // maplibre-gl
-const OCEAN = { land: "#E9F1ED", land2: "#E1EBE6", water: "#2C9A92", green: "#C8E2CC", bldg: "#CCDDD8", bldgO: "#8FB6AF", road: "#FFFFFF", roadCase: "#7DADA7", rail: "#A9C4BE", ink: "#143A3D", halo: "#FFFFFF", boundary: "#9FC0BA" };
+const OCEAN = { land: "#EAF1FA", land2: "#E2EAF4", water: "#2E86C9", green: "#CDE0EF", bldg: "#D3DEEC", bldgO: "#93AECF", road: "#FFFFFF", roadCase: "#7FA8CE", rail: "#A9BCD4", ink: "#1B3A5B", halo: "#FFFFFF", boundary: "#9FB6D0" };
 
 const loadMapLibre = () => new Promise<any>((resolve) => {
   if (typeof window === "undefined") return resolve(null);
@@ -192,55 +192,57 @@ export function MapScreen() {
   const handlePickupNote = async (noteId: string) => { const s = socketRef.current || await getSocket(); if (!s?.connected || !userLocation) return; setDialogVisible(false); s.emit("location_update", { lat: userLocation.lat, lng: userLocation.lng, campus }); setTimeout(() => s.emit("pickup_note", { noteId }), 300); };
   const closeDialog = () => setDialogVisible(false);
   const fitCampus = (camp: Campus) => { const b = bounds[camp]; const sw = gcj02ToWgs84(b.minLat, b.minLng), ne = gcj02ToWgs84(b.maxLat, b.maxLng); try { mapRef.current?.fitBounds([[sw.lng, sw.lat], [ne.lng, ne.lat]], { padding: 40, duration: 600 }); } catch (e) {} };
+  const flyToMe = () => { if (mapRef.current && userLocation) { const w = gcj02ToWgs84(userLocation.lat, userLocation.lng); mapRef.current.flyTo({ center: [w.lng, w.lat], zoom: Math.max(mapRef.current.getZoom(), 16) }); } };
+  const retryLocate = () => {
+    setGpsLabel("重新定位中...");
+    if (!navigator?.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const gcj = wgs84ToGcj02(pos.coords.latitude, pos.coords.longitude);
+        setGpsLabel(`${gcj.lat.toFixed(6)}, ${gcj.lng.toFixed(6)}`); setUserLocation(gcj);
+        if (mapRef.current && ML) {
+          if (userMarkerRef.current) userMarkerRef.current.remove();
+          userMarkerRef.current = new ML.Marker({ element: mkEl(colors.primary, "你在这", true), anchor: "center" }).setLngLat([pos.coords.longitude, pos.coords.latitude]).addTo(mapRef.current);
+          mapRef.current.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: Math.max(mapRef.current.getZoom(), 16) });
+        }
+        const s = getCurrentSocket(); if (s?.connected) s.emit("location_update", { lat: gcj.lat, lng: gcj.lng, campus });
+      },
+      () => setGpsLabel("⚠ 定位信号弱"),
+      { enableHighAccuracy: true, timeout: 30000 }
+    );
+  };
   const nc = chests.filter((c: any) => c.type === "normal"); const ac = chests.filter((c: any) => c.type === "advanced");
   const RCOLORS = RARITY_COLORS;
 
   const T = TouchableOpacity;
   return (
     <View style={S.ct}>
-      <View style={S.tb}><View style={S.sw}>
-        <T onPress={() => { setCampus(Campus.GULOU); fitCampus(Campus.GULOU); }} style={[S.sb, campus === Campus.GULOU && S.sa]}><Text style={[S.st, campus === Campus.GULOU && S.sta]}>鼓楼</Text></T>
-        <T onPress={() => { setCampus(Campus.XIANLIN); fitCampus(Campus.XIANLIN); }} style={[S.sb, campus === Campus.XIANLIN && S.sa]}><Text style={[S.st, campus === Campus.XIANLIN && S.sta]}>仙林</Text></T>
-        <T onPress={() => { setCampus(Campus.SUZHOU); fitCampus(Campus.SUZHOU); }} style={[S.sb, campus === Campus.SUZHOU && S.sa]}><Text style={[S.st, campus === Campus.SUZHOU && S.sta]}>苏州</Text></T>
-      </View></View>
-      {gpsLabel ? (
-        <View style={S.gb}>
-          <Text style={S.gt}>{gpsLabel}</Text>
-          {gpsLabel.startsWith("⚠") && (
-            <T style={S.gr} onPress={() => {
-              setGpsLabel("重新定位中...");
-              if (navigator?.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => {
-                    const gcj = wgs84ToGcj02(pos.coords.latitude, pos.coords.longitude);
-                    setGpsLabel(`${gcj.lat.toFixed(6)}, ${gcj.lng.toFixed(6)}`);
-                    setUserLocation(gcj);
-                    if (mapRef.current && ML) {
-                      if (userMarkerRef.current) userMarkerRef.current.remove();
-                      userMarkerRef.current = new ML.Marker({ element: mkEl(colors.primary, "你在这", true), anchor: "center" }).setLngLat([pos.coords.longitude, pos.coords.latitude]).addTo(mapRef.current);
-                      mapRef.current.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: Math.max(mapRef.current.getZoom(), 16) });
-                    }
-                    const s = getCurrentSocket(); if (s?.connected) s.emit("location_update", { lat: gcj.lat, lng: gcj.lng, campus });
-                  },
-                  () => setGpsLabel("⚠ 定位信号弱"),
-                  { enableHighAccuracy: true, timeout: 30000 }
-                );
-              }
-            }} activeOpacity={0.7}>
-              <Text style={S.grt}>重试</Text>
-            </T>
-          )}
-        </View>
-      ) : null}
       <View style={{ flex: 1 }}>
         <View ref={divRef} style={{ flex: 1 }} />
-        <T style={S.rf} onPress={fetchAll}><Text style={{ fontWeight: "700", color: "#FFF", fontSize: 13 }}>刷新</Text></T>
-        <View style={S.cs}>
-          <View style={S.ctr}><View style={[S.dot, { backgroundColor: colors.gold }]} /><Text style={S.cn}>{nc.length}</Text></View>
-          <View style={[S.ctr, S.ca]}><View style={[S.dot, { backgroundColor: colors.accent }]} /><Text style={S.cn}>{ac.length}</Text></View>
+        {/* 左上：校区切换 pill */}
+        <View style={S.campusPill}>
+          <T onPress={() => { setCampus(Campus.GULOU); fitCampus(Campus.GULOU); }} style={[S.cpBtn, campus === Campus.GULOU && S.cpOn]}><Text style={[S.cpTxt, campus === Campus.GULOU && S.cpTxtOn]}>鼓楼</Text></T>
+          <T onPress={() => { setCampus(Campus.XIANLIN); fitCampus(Campus.XIANLIN); }} style={[S.cpBtn, campus === Campus.XIANLIN && S.cpOn]}><Text style={[S.cpTxt, campus === Campus.XIANLIN && S.cpTxtOn]}>仙林</Text></T>
+          <T onPress={() => { setCampus(Campus.SUZHOU); fitCampus(Campus.SUZHOU); }} style={[S.cpBtn, campus === Campus.SUZHOU && S.cpOn]}><Text style={[S.cpTxt, campus === Campus.SUZHOU && S.cpTxtOn]}>苏州</Text></T>
         </View>
-        <T style={S.noteBtn} onPress={() => { if (userLocation) { (navigation as any).navigate("WriteNote", { userLocation, campus }); } }}><Text style={S.fabGlyph}>✎</Text></T>
-        <T style={S.locBtn} onPress={() => { if (mapRef.current && userLocation) { const w = gcj02ToWgs84(userLocation.lat, userLocation.lng); mapRef.current.flyTo({ center: [w.lng, w.lat], zoom: Math.max(mapRef.current.getZoom(), 16) }); } }}><Text style={S.fabGlyph}>◎</Text></T>
+        {/* 右上：刷新 / 定位 圆钮 */}
+        <View style={S.topRight}>
+          <T style={S.iconBtn} onPress={fetchAll}><Text style={S.iconGlyph}>↻</Text></T>
+          <T style={S.iconBtn} onPress={flyToMe}><Text style={S.iconGlyph}>◎</Text></T>
+        </View>
+        {/* 右下：计数 + 写纸条 */}
+        <View style={S.brStack}>
+          <View style={S.countRow}>
+            <View style={S.countChip}><View style={[S.dot, { backgroundColor: colors.gold }]} /><Text style={S.cn}>{nc.length}</Text></View>
+            <View style={S.countChip}><View style={[S.dot, { backgroundColor: colors.accent }]} /><Text style={S.cn}>{ac.length}</Text></View>
+          </View>
+          <T style={S.noteBtn} onPress={() => { if (userLocation) { (navigation as any).navigate("WriteNote", { userLocation, campus }); } }}><Text style={S.fabGlyph}>✎</Text></T>
+        </View>
+        {/* 左下：经纬度小字 + 重试 */}
+        <View style={S.coordBL}>
+          <Text style={S.coordTxt}>{gpsLabel || "定位中…"}</Text>
+          {gpsLabel.startsWith("⚠") && <T onPress={retryLocate}><Text style={S.coordRetry}>重试</Text></T>}
+        </View>
       </View>
       <Modal visible={dialogVisible} transparent animationType="fade"><T style={D.ov} activeOpacity={1} onPress={closeDialog}><T style={D.cd} activeOpacity={1} onPress={() => {}}>
         {dialogData?.type === "normalChest" && (() => { const c = dialogData.data; const dist = userLocation ? getDist(userLocation.lat, userLocation.lng, c.coordinates.lat, c.coordinates.lng) : null; const inR = dist != null && dist <= 20;
@@ -288,12 +290,25 @@ export function MapScreen() {
 }
 
 const S = StyleSheet.create({
-  ct: { flex: 1, backgroundColor: colors.background }, tb: { paddingTop: 56, paddingHorizontal: 16, paddingBottom: 10, backgroundColor: "#fff", borderBottomLeftRadius: 16, borderBottomRightRadius: 16, elevation: 8 }, sw: { flexDirection: "row", backgroundColor: "#f0f0f0", borderRadius: 16, padding: 4 }, sb: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center" }, sa: { backgroundColor: colors.primary }, st: { fontWeight: "700", color: "#999" }, sta: { color: "#fff" },
-  gb: { backgroundColor: "rgba(44,130,201,0.92)", paddingVertical: 4, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 }, gt: { color: "#fff", fontWeight: "700", fontSize: 12 }, gr: { backgroundColor: "rgba(255,255,255,0.25)", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 }, grt: { color: "#fff", fontWeight: "700", fontSize: 11 },
-  rf: { position: "absolute", top: 12, left: 12, backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, elevation: 6, zIndex: 30 },
-  cs: { position: "absolute", top: 12, right: 12, gap: 8, alignItems: "flex-end" },
-  ctr: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 }, ca: { borderWidth: 1.5, borderColor: colors.accent + "55" }, ci: { fontSize: 22 }, cn: { fontWeight: "800", fontSize: 18, color: colors.ink }, dot: { width: 12, height: 12, borderRadius: 6, marginBottom: 4 }, fabGlyph: { fontSize: 22, color: colors.primary, fontWeight: "700" },
-  sqBtn: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 }, locBtn: { position: "absolute", bottom: 120, right: 12, width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.95)", justifyContent: "center", alignItems: "center", elevation: 4, zIndex: 30 }, noteBtn: { position: "absolute", bottom: 180, right: 12, width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,224,130,0.95)", justifyContent: "center", alignItems: "center", elevation: 4, zIndex: 30 },
+  ct: { flex: 1, backgroundColor: colors.background },
+  campusPill: { position: "absolute", top: 52, left: 12, flexDirection: "row", backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 999, padding: 3, zIndex: 30, shadowColor: colors.ink, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 5 },
+  cpBtn: { paddingHorizontal: 13, paddingVertical: 6, borderRadius: 999 },
+  cpOn: { backgroundColor: colors.primary },
+  cpTxt: { fontFamily: BODY, fontSize: 12.5, fontWeight: "700", color: colors.sub },
+  cpTxtOn: { color: "#fff" },
+  topRight: { position: "absolute", top: 52, right: 12, gap: 8, zIndex: 30 },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.95)", justifyContent: "center", alignItems: "center", shadowColor: colors.ink, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 5, elevation: 4 },
+  iconGlyph: { fontSize: 20, color: colors.primary, fontWeight: "700" },
+  brStack: { position: "absolute", right: 12, bottom: 24, alignItems: "flex-end", gap: 10, zIndex: 30 },
+  countRow: { flexDirection: "row", gap: 6 },
+  countChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  dot: { width: 11, height: 11, borderRadius: 6 },
+  cn: { fontWeight: "800", fontSize: 14, color: colors.ink },
+  noteBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary, justifyContent: "center", alignItems: "center", shadowColor: colors.ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 5 },
+  fabGlyph: { fontSize: 22, color: "#fff", fontWeight: "700" },
+  coordBL: { position: "absolute", left: 12, bottom: 20, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(27,58,91,0.72)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, zIndex: 30 },
+  coordTxt: { color: "#fff", fontSize: 11, fontWeight: "600" },
+  coordRetry: { color: "#fff", fontSize: 11, fontWeight: "700", textDecorationLine: "underline" },
 });
 const D = StyleSheet.create({
   ov: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", padding: 32 }, cd: { backgroundColor: "#fff", borderRadius: 24, padding: 24, width: "100%", maxWidth: 340, alignItems: "center" },

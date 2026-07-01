@@ -411,6 +411,8 @@ const styles = StyleSheet.create({
   cartoucheRule: { height: 1, width: 26, backgroundColor: colors.accent },
   cartoucheEn: { fontFamily: BODY, fontSize: 9, fontWeight: "700", color: colors.accent, letterSpacing: 3 },
   headerSub: { ...typography.caption, color: colors.textHint, marginTop: 6, textAlign: "center" },
+  mineLink: { position: "absolute", top: 54, right: 16, zIndex: 2, paddingVertical: 4, paddingHorizontal: 4 },
+  mineLinkText: { fontFamily: BODY, fontSize: 12.5, fontWeight: "700", color: colors.primary },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -636,26 +638,13 @@ export function ActivitySquareScreen({ navigation }: any) {
             <View style={styles.cartoucheRule} />
           </View>
         </View>
-        {/* 分段控件 */}
-        <View style={styles.segmentRow}>
-          <TouchableOpacity
-            style={[styles.segmentTab, !showMyEvents && styles.segmentTabActive]}
-            onPress={() => { setShowMyEvents(false); }}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.segmentText, !showMyEvents && styles.segmentTextActive]}>活动广场</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.segmentTab, showMyEvents && styles.segmentTabActive]}
-            onPress={() => {
-              setShowMyEvents(true);
-              if (myEvents.length === 0) fetchMyEvents();
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.segmentText, showMyEvents && styles.segmentTextActive]}>我参与的</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.mineLink}
+          onPress={() => { const next = !showMyEvents; setShowMyEvents(next); if (next && myEvents.length === 0) fetchMyEvents(); }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.mineLinkText}>{showMyEvents ? "‹ 活动广场" : "我参与的 ›"}</Text>
+        </TouchableOpacity>
         {!showMyEvents && (
           <Text style={styles.headerSub}>{total > 0 ? `共 ${total} 个活动` : ""}</Text>
         )}

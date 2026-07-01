@@ -15,8 +15,7 @@ export function FriendListScreen({ navigation }: any) {
   const [friends, setFriends] = useState<FriendData[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showRequests, setShowRequests] = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
   const [searchId, setSearchId] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchResult, setSearchResult] = useState<PublicUser | null>(null);
@@ -99,30 +98,22 @@ export function FriendListScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 9, marginBottom: spacing.sm }}>
-          <Text style={styles.headerTitle}>同船好友</Text>
-          <Text style={styles.headerEn}>shipmates</Text>
-        </View>
-        <View style={styles.headerBtns}>
-          <TouchableOpacity
-            style={[styles.headerBtn, requests.length > 0 && styles.headerBtnAlert]}
-            onPress={() => { setShowRequests(!showRequests); setShowAdd(false); }}
-          >
-            <Text style={styles.headerBtnText}>好友申请{requests.length > 0 ? ` (${requests.length})` : ""}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.headerBtn, styles.headerBtnAdd]}
-            onPress={() => { setShowAdd(!showAdd); setShowRequests(false); }}
-          >
-            <Text style={[styles.headerBtnText, styles.headerBtnAddText]}>+ 添加</Text>
+        <View style={styles.headerRow}>
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 9 }}>
+            <Text style={styles.headerTitle}>同船好友</Text>
+            <Text style={styles.headerEn}>shipmates</Text>
+          </View>
+          <TouchableOpacity style={styles.plusBtn} onPress={() => setShowPanel(!showPanel)} activeOpacity={0.8}>
+            <Text style={styles.plusGlyph}>{showPanel ? "×" : "+"}</Text>
+            {requests.length > 0 && !showPanel && <View style={styles.plusDot} />}
           </TouchableOpacity>
         </View>
       </View>
 
       {/* 添加好友面板 */}
-      {showAdd && (
+      {showPanel && (
         <View style={styles.addPanel}>
-          <Text style={styles.addTitle}>🔍 查找用户</Text>
+          <Text style={styles.addTitle}>添加好友</Text>
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
@@ -148,7 +139,7 @@ export function FriendListScreen({ navigation }: any) {
                 <Text style={styles.searchGalleryBtnText}>🏛️</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.searchAddBtn} onPress={handleAddFriend} disabled={searching}>
-                <Text style={styles.searchAddBtnText}>➕ 添加</Text>
+                <Text style={styles.searchAddBtnText}>添加</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -156,8 +147,9 @@ export function FriendListScreen({ navigation }: any) {
       )}
 
       {/* 好友申请面板 */}
-      {showRequests && (
+      {showPanel && (
         <View style={styles.requestsPanel}>
+          <Text style={styles.addTitle}>好友申请</Text>
           {requests.length === 0 ? (
             <Text style={styles.emptyRequests}>暂无待处理的好友申请</Text>
           ) : (
@@ -200,6 +192,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontFamily: HAND, fontSize: 27, color: colors.ink, lineHeight: 30 },
   headerEn: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.secondary, paddingBottom: 3 },
+  headerRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+  plusBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+  plusGlyph: { color: "#fff", fontSize: 24, fontWeight: "700", lineHeight: 26 },
+  plusDot: { position: "absolute", top: 3, right: 3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: colors.background },
   headerBtns: { flexDirection: "row", gap: spacing.sm },
   headerBtn: {
     flex: 1, backgroundColor: colors.surfaceAlt, borderRadius: borderRadius.lg, paddingVertical: spacing.sm, alignItems: "center",

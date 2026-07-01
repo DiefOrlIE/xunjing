@@ -113,11 +113,13 @@ export function GalleryScreen({ navigation }: any) {
             <Text style={styles.headerEn}>collection</Text>
           </View>
           <View style={styles.toggle}>
-            <TouchableOpacity onPress={() => setShowNotes(false)} style={[styles.toggleCell, !showNotes && styles.toggleCellOn]} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => setShowNotes(false)} style={styles.toggleItem} activeOpacity={0.7}>
               <Text style={[styles.toggleText, !showNotes && styles.toggleTextOn]}>鲸藏</Text>
+              {!showNotes && <View style={styles.toggleBar} />}
             </TouchableOpacity>
-            <TouchableOpacity onPress={loadNotes} style={[styles.toggleCell, showNotes && styles.toggleCellOn]} activeOpacity={0.7}>
+            <TouchableOpacity onPress={loadNotes} style={styles.toggleItem} activeOpacity={0.7}>
               <Text style={[styles.toggleText, showNotes && styles.toggleTextOn]}>纸条</Text>
+              {showNotes && <View style={styles.toggleBar} />}
             </TouchableOpacity>
           </View>
         </View>
@@ -266,11 +268,11 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: HAND, fontSize: 27, color: colors.ink, lineHeight: 30 },
   headerEn: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.secondary, paddingBottom: 3 },
   headerSub: { ...typography.caption, color: colors.textSecondary, marginTop: 6 },
-  toggle: { flexDirection: "row", backgroundColor: colors.primary + "10", borderRadius: 999, padding: 3 },
-  toggleCell: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
-  toggleCellOn: { backgroundColor: colors.primary },
-  toggleText: { ...typography.caption, fontSize: 12, fontWeight: "700", color: colors.textSecondary },
-  toggleTextOn: { color: "#FFF" },
+  toggle: { flexDirection: "row", gap: 16, alignItems: "flex-end" },
+  toggleItem: { alignItems: "center" },
+  toggleText: { fontFamily: HAND, fontSize: 18, color: colors.faded },
+  toggleTextOn: { color: colors.primary },
+  toggleBar: { width: 16, height: 2.5, borderRadius: 2, backgroundColor: colors.accent, marginTop: 2 },
   floatTabBar: {
     position: "absolute", left: 4, top: "22%", zIndex: 20,
     backgroundColor: colors.surface + "F0", borderRadius: borderRadius.lg,
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
   floatTab: { alignItems: "center", paddingVertical: spacing.xs, paddingHorizontal: 6, borderRadius: borderRadius.sm },
   floatTabDot: { width: 8, height: 8, borderRadius: 4, marginBottom: 1 },
   floatTabText: { fontSize: 9, fontWeight: "700" },
-  list: { flex: 1, marginLeft: 36, backgroundColor: "transparent" },
+  list: { flex: 1, marginLeft: 20, backgroundColor: "transparent" },
   listContent: { padding: spacing.md, paddingBottom: 120 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: spacing.md, marginBottom: spacing.sm, paddingHorizontal: 2 },
   sectionTitle: { fontFamily: HAND, fontSize: 19, transform: [{ rotate: "-2deg" }] },
