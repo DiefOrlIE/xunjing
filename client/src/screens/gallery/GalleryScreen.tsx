@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, SectionList, FlatList,
   RefreshControl, ActivityIndicator, Modal, ScrollView,
 } from "react-native";
-import { colors, typography, spacing, borderRadius, HAND, SERIF, KAI } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, SERIF, KAI, BODY } from "../../theme";
 import { CollectionCard } from "../../components/CollectionCard";
 import { EmptyState } from "../../components/EmptyState";
 import { DotPaper, Waveform, WhaleMark, LinedPaper } from "../../theme/whaleKit";

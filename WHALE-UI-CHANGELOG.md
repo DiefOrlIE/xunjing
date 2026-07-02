@@ -58,7 +58,16 @@
 - APK 阶段:`*.native.tsx` 同款换皮 + `expo-font` 打包字体(CJK 大,注意体积)+ 重打 APK + 真机回测。
 - push / PR:需先确认鳟鱼账号对 `9ykrz5wssj-oss/xunjing` 写权限;PR 前移除第 7 节脚手架。
 
-## 9. 构建 & 本地查看
+## 9. 已知坑：`expo export` 生产构建 ≠ 开发模式
+
+**（2026-07-02）GalleryScreen `BODY is not defined` → 白屏**
+
+- 现象：`npx expo export --platform web` 后访问 `localhost:5190` 白屏，puppeteer 抓取报 `ReferenceError: BODY is not defined`。
+- 根因：`GalleryScreen.tsx` 的 import 只写了 `{ colors, typography, spacing, borderRadius, HAND, SERIF, KAI }`，漏了 `BODY`，但样式表 `StyleSheet.create` 中 4 处用了 `fontFamily: BODY`。开发模式（Metro dev server）模块解析较宽松侥幸通过，生产构建（`expo export`）直接 ReferenceError → React 无法挂载 → 白屏。
+- 修复：补上 `BODY` 导入。
+- 教训：**`expo export` 后必须用 puppeteer 或手动打开浏览器验证**，不能只看构建命令返回 0 就认为成功。主题 token（`BODY`/`HAND`/`SERIF`/`KAI`）新增到新文件时，确认 import 语句完整。
+
+## 10. 构建 & 本地查看
 ```
 cd client
 npx expo export --platform web      # 产物 → dist/
