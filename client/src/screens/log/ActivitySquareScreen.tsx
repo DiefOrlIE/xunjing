@@ -80,11 +80,11 @@ const chipStyles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: 6,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   emoji: { fontSize: 14 },
   label: {
@@ -411,25 +411,26 @@ const styles = StyleSheet.create({
   cartoucheRule: { height: 1, width: 26, backgroundColor: colors.accent },
   cartoucheEn: { fontFamily: BODY, fontSize: 9, fontWeight: "700", color: colors.accent, letterSpacing: 3 },
   headerSub: { ...typography.caption, color: colors.textHint, marginTop: 6, textAlign: "center" },
-  mineLink: { position: "absolute", top: 54, right: 16, zIndex: 2, paddingVertical: 4, paddingHorizontal: 4 },
+  mineRow: { alignItems: "flex-end", paddingHorizontal: spacing.lg, paddingTop: 4, paddingBottom: 2 },
   mineLinkText: { fontFamily: BODY, fontSize: 12.5, fontWeight: "700", color: colors.primary },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     gap: spacing.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
   },
   searchInput: {
     flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    ...typography.body,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    ...typography.caption,
+    fontSize: 13,
     color: colors.textPrimary,
   },
   searchBtn: {
@@ -440,10 +441,8 @@ const styles = StyleSheet.create({
   },
   searchBtnText: { ...typography.bodyBold, color: "#FFF" },
   typeFilter: {
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.background,
   },
   // ── 分段控件 ──
   segmentRow: {
@@ -638,16 +637,16 @@ export function ActivitySquareScreen({ navigation }: any) {
             <View style={styles.cartoucheRule} />
           </View>
         </View>
-        <TouchableOpacity
-          style={styles.mineLink}
-          onPress={() => { const next = !showMyEvents; setShowMyEvents(next); if (next && myEvents.length === 0) fetchMyEvents(); }}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.mineLinkText}>{showMyEvents ? "‹ 活动广场" : "我参与的 ›"}</Text>
-        </TouchableOpacity>
         {!showMyEvents && (
           <Text style={styles.headerSub}>{total > 0 ? `共 ${total} 个活动` : ""}</Text>
         )}
+      </View>
+
+      {/* 我参与的 / 返回 链接（搜索框上方） */}
+      <View style={styles.mineRow}>
+        <TouchableOpacity onPress={() => { const next = !showMyEvents; setShowMyEvents(next); if (next && myEvents.length === 0) fetchMyEvents(); }} activeOpacity={0.7}>
+          <Text style={styles.mineLinkText}>{showMyEvents ? "‹ 活动广场" : "我参与的 ›"}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 搜索栏（仅在广场模式显示） */}

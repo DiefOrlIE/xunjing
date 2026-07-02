@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     overflow: "hidden",
   },
-  licenceSeal: { position: "absolute", right: 12, top: 8, transform: [{ rotate: "-8deg" }] },
+  licenceSeal: { position: "absolute", right: 10, top: 80, transform: [{ rotate: "-8deg" }], zIndex: 1 },
   licenceHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, paddingBottom: 9, borderBottomWidth: 1, borderStyle: "dashed", borderBottomColor: colors.primary + "33" },
   licenceTitle: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.primary },
   licenceEn: { fontFamily: BODY, fontSize: 9.5, color: colors.faded, letterSpacing: 2 },

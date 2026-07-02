@@ -38,6 +38,13 @@ const CHESTS = [
   { _id: "ch2", type: "advanced", coordinates: { lat: 32.1162, lng: 118.9548 }, requiredPlayers: 3 },
 ];
 
+const _iso = (h: number) => new Date(Date.now() - h * 3600000).toISOString();
+const NOTES = [
+  { _id: "n1", content: "今天仙林湖的晚霞好好看，希望捡到这张纸条的人也开心一整天。", isAnonymous: false, authorNickname: "陈芊静", authorNumericId: 1001, createdAt: _iso(30), pickedAt: _iso(2), coordinates: { lat: 32.1178, lng: 118.9530 } },
+  { _id: "n2", content: "期末加油！图书馆三楼有人和你一起熬夜。", isAnonymous: true, authorNickname: "", authorNumericId: 0, createdAt: _iso(20), pickedAt: _iso(5), coordinates: { lat: 32.1169, lng: 118.9552 } },
+  { _id: "n3", content: "梧桐叶落了，捡一片夹进书里当书签吧。", isAnonymous: false, authorNickname: "黄梓洋", authorNumericId: 1002, createdAt: _iso(50), pickedAt: _iso(8), coordinates: { lat: 32.1185, lng: 118.9541 } },
+];
+
 if (typeof window !== "undefined") {
   api.defaults.adapter = async (config: any) => {
     const u = String(config.url || "");
@@ -51,7 +58,7 @@ if (typeof window !== "undefined") {
     if (/campus[-_]?bound/i.test(u)) return ok([]);
     if (/activity[-_]?pin/i.test(u)) return ok(EVENTS.map((e, i) => ({ ...e, meetCoordinates: { lat: 32.117 + i * 0.0008, lng: 118.953 + i * 0.0009 } })));
     if (/chest/i.test(u)) return ok(CHESTS);
-    if (/note/i.test(u)) return ok([]);
+    if (/note/i.test(u)) return ok(NOTES);
     if (/feedback/i.test(u)) return ok([]);
     if (/me\b|auth/i.test(u)) return ok({ userId: 5201314, nickname: "鳟鱼", email: "zhunyu@smail.nju.edu.cn", role: "admin" });
     return ok([]);

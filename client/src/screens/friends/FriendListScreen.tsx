@@ -193,9 +193,9 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: HAND, fontSize: 27, color: colors.ink, lineHeight: 30 },
   headerEn: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.secondary, paddingBottom: 3 },
   headerRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
-  plusBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
-  plusGlyph: { color: "#fff", fontSize: 24, fontWeight: "700", lineHeight: 26 },
-  plusDot: { position: "absolute", top: 3, right: 3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: colors.background },
+  plusBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primaryLight, alignItems: "center", justifyContent: "center" },
+  plusGlyph: { color: "#fff", fontSize: 19, fontWeight: "600", textAlign: "center", includeFontPadding: false } as any,
+  plusDot: { position: "absolute", top: 1, right: 1, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: colors.background },
   headerBtns: { flexDirection: "row", gap: spacing.sm },
   headerBtn: {
     flex: 1, backgroundColor: colors.surfaceAlt, borderRadius: borderRadius.lg, paddingVertical: spacing.sm, alignItems: "center",

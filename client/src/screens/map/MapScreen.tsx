@@ -33,7 +33,7 @@ const loadMapLibre = () => new Promise<any>((resolve) => {
   const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css"; document.head.appendChild(link);
   if (!document.getElementById("whale-mk-css")) {
     const st = document.createElement("style"); st.id = "whale-mk-css";
-    st.textContent = ".wmk{position:relative;width:0;height:0}.wmk .ping{position:absolute;left:0;top:0;width:16px;height:16px;margin:-8px;border-radius:50%;background:var(--c);animation:wping 2.4s ease-out infinite}.wmk .ping.b{animation-delay:1.2s}.wmk .core{position:absolute;left:0;top:0;width:15px;height:15px;margin:-7.5px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}.wmk .tag{position:absolute;left:0;top:11px;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:var(--c);text-shadow:0 1px 2px #fff,0 0 3px #fff}.wmk.me .core{width:19px;height:19px;margin:-9.5px}.wmk.me .halo{position:absolute;left:0;top:0;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(44,130,201,.14);border:1px solid rgba(44,130,201,.35)}@keyframes wping{0%{transform:scale(.5);opacity:.55}100%{transform:scale(3);opacity:0}}";
+    st.textContent = ".wmk{position:relative;width:0;height:0}.wmk .ping{position:absolute;left:0;top:0;width:16px;height:16px;margin:-8px;border-radius:50%;background:var(--c);animation:wping 2.4s ease-out infinite}.wmk .ping.b{animation-delay:1.2s}.wmk .core{position:absolute;left:0;top:0;width:15px;height:15px;margin:-7.5px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}.wmk .tag{position:absolute;left:0;top:11px;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:var(--c);text-shadow:0 1px 2px #fff,0 0 3px #fff}.wmk.me .core{width:19px;height:19px;margin:-9.5px}.wmk.me .halo{position:absolute;left:0;top:0;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(44,130,201,.14);border:1px solid rgba(44,130,201,.35)}@keyframes wping{0%{transform:scale(.5);opacity:.55}100%{transform:scale(3);opacity:0}}.maplibregl-ctrl-bottom-left{bottom:26px}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{margin-left:12px}";
     document.head.appendChild(st);
   }
   const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"; s.onload = () => resolve((window as any).maplibregl); s.onerror = () => resolve(null); document.head.appendChild(s);
@@ -82,7 +82,7 @@ export function MapScreen() {
   const [showResultModal, setShowResultModal] = useState(false);
   const [nearbyCounts, setNearbyCounts] = useState<Record<string, number>>({});
   const socketRef = useRef<any>(null); const mapRef = useRef<any>(null); const markersRef = useRef<any>(null);
-  const userMarkerRef = useRef<any>(null); const divRef = useRef<any>(null);
+  const userMarkerRef = useRef<any>(null); const divRef = useRef<any>(null); const didCenterRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
   const [bounds, setBounds] = useState<Record<string, CampusBoundData>>(CAMPUS_BOUNDS);
 
@@ -111,7 +111,7 @@ export function MapScreen() {
     loadMapLibre().then((ml) => { if (c || !ml || !divRef.current) return; ML = ml;
       const ct = CAMPUS_CENTERS[campus]; const w0 = gcj02ToWgs84(ct.lat, ct.lng);
       const map = new ml.Map({ container: divRef.current, style: "https://tiles.openfreemap.org/styles/liberty", center: [w0.lng, w0.lat], zoom: ct.zoom, attributionControl: false });
-      map.addControl(new ml.NavigationControl({ showCompass: false }), "bottom-right");
+      map.addControl(new ml.NavigationControl({ showCompass: false }), "bottom-left");
       map.on("load", () => {
         recolorMap(map);
         const b = bounds[campus]; const sw = gcj02ToWgs84(b.minLat, b.minLng), ne = gcj02ToWgs84(b.maxLat, b.maxLng);
@@ -134,7 +134,8 @@ export function MapScreen() {
       if (mapRef.current && ML) {
         if (userMarkerRef.current) userMarkerRef.current.remove();
         userMarkerRef.current = new ML.Marker({ element: mkEl(colors.primary, "你在这", true), anchor: "center" }).setLngLat([lng, lat]).addTo(mapRef.current);
-        /* 蓝点仅显示位置，不自动移动视角 */
+        // 首次定位成功后自动归中一次（之后不再自动移动，避免和手动拖动打架）
+        if (!didCenterRef.current) { didCenterRef.current = true; try { mapRef.current.flyTo({ center: [lng, lat], zoom: 16 }); } catch (e) {} }
       }
       const s = getCurrentSocket(); if (s?.connected) s.emit("location_update", { lat: gcj.lat, lng: gcj.lng, campus });
     };
@@ -232,11 +233,11 @@ export function MapScreen() {
         </View>
         {/* 右下：计数 + 写纸条 */}
         <View style={S.brStack}>
+          <T style={S.noteBtn} onPress={() => { if (userLocation) { (navigation as any).navigate("WriteNote", { userLocation, campus }); } }}><Text style={S.fabGlyph}>✎</Text></T>
           <View style={S.countRow}>
             <View style={S.countChip}><View style={[S.dot, { backgroundColor: colors.gold }]} /><Text style={S.cn}>{nc.length}</Text></View>
             <View style={S.countChip}><View style={[S.dot, { backgroundColor: colors.accent }]} /><Text style={S.cn}>{ac.length}</Text></View>
           </View>
-          <T style={S.noteBtn} onPress={() => { if (userLocation) { (navigation as any).navigate("WriteNote", { userLocation, campus }); } }}><Text style={S.fabGlyph}>✎</Text></T>
         </View>
         {/* 左下：经纬度小字 + 重试 */}
         <View style={S.coordBL}>
@@ -306,7 +307,7 @@ const S = StyleSheet.create({
   cn: { fontWeight: "800", fontSize: 14, color: colors.ink },
   noteBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary, justifyContent: "center", alignItems: "center", shadowColor: colors.ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 5 },
   fabGlyph: { fontSize: 22, color: "#fff", fontWeight: "700" },
-  coordBL: { position: "absolute", left: 12, bottom: 20, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(27,58,91,0.72)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, zIndex: 30 },
+  coordBL: { position: "absolute", left: 12, bottom: 4, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(27,58,91,0.72)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, zIndex: 30 },
   coordTxt: { color: "#fff", fontSize: 11, fontWeight: "600" },
   coordRetry: { color: "#fff", fontSize: 11, fontWeight: "700", textDecorationLine: "underline" },
 });
