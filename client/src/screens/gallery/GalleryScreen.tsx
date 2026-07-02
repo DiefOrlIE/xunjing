@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   noteWho: { flexDirection: "row", alignItems: "center", gap: 8 },
   noteAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.secondary, alignItems: "center", justifyContent: "center" },
   noteAvatarTxt: { fontSize: 13, fontWeight: "700", color: "#fff" },
-  noteName: { fontFamily: BODY, fontWeight: "700", fontSize: 13, color: colors.ink },
+  noteName: { fontFamily: HAND, fontSize: 16, color: colors.ink },
   noteSign: { fontFamily: HAND, fontSize: 17, color: colors.ink },
   noteMeta: { fontFamily: BODY, fontSize: 10.5, color: colors.faded },
   noteDate: { fontFamily: BODY, fontSize: 10.5, color: colors.faded },

@@ -193,8 +193,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: HAND, fontSize: 27, color: colors.ink, lineHeight: 30 },
   headerEn: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.secondary, paddingBottom: 3 },
   headerRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
-  plusBtn: { paddingHorizontal: 6, paddingVertical: 2, alignItems: "center", justifyContent: "center" },
-  plusGlyph: { color: colors.primaryDark, fontSize: 30, fontWeight: "400", textAlign: "center", includeFontPadding: false } as any,
+  plusBtn: { paddingHorizontal: 6, alignItems: "center", justifyContent: "center", marginBottom: -6 },
+  plusGlyph: { color: colors.primaryDark, fontSize: 30, fontWeight: "400", lineHeight: 32, textAlign: "center", includeFontPadding: false } as any,
   plusDot: { position: "absolute", top: 2, right: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: colors.background },
   headerBtns: { flexDirection: "row", gap: spacing.sm },
   headerBtn: {
