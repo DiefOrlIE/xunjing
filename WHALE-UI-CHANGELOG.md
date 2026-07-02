@@ -7,8 +7,12 @@
 - **配色** `src/theme/colors.ts`:整套换「浅滩」清新冷色(保留原 key 名 → 全 App 联动)。
   - primary `#2C82C9`(海洋蓝)· secondary `#45C0A6`(薄荷)· accent `#F97A66`(珊瑚)· background `#F2F7FB` · ink `#213F58` · gold `#E9B23F` · green `#5BB98C`。
   - 稀有度 6 级(单一来源,`constants.RARITY_COLORS = colors.rarity`):典藏`#6C63D6`/神秘`#C75BB8`/限定`#F97A66`/高端`#E9B23F`/普通`#2C82C9`/常见`#45C0A6`。
-- **字体** `src/theme/typography.ts`:`HAND='Long Cang'`(手写,仅标题/装饰)· `SERIF='Cormorant Garamond,Noto Serif SC'` · `BODY='Noto Sans SC'`。Web 端由 `index.ts` 运行时注入 Google Fonts(和 MapScreen 动态插 Leaflet CSS 同款)。
-- **母题工具箱** 新增 `src/theme/whaleKit.tsx`(react-native-svg):`WhaleMark/Waveform/Ripple/FreqBars/Seal/Tape/DotPaper/SeaPaper`。
+- **字体** `src/theme/typography.ts`(Web 端由 `index.ts` 运行时注入):
+  - `HAND='Long Cang, Noto Serif SC, serif'` — 手写,**仅标题/落款/装饰**;缺字回退**宋体**(不是黑体,避免混排突兀)。⚠️ Long Cang 只覆盖常用简体(GB2312 级),生僻字/繁体会逐字回退。
+  - `SERIF='Cormorant Garamond, Noto Serif SC'` — en 副标 / 票根 Cartouche。
+  - `BODY='Noto Sans SC'` — 正文/按钮/标签(默认)。
+  - `KAI='LXGW WenKai, Kaiti SC, …, serif'` — **楷体**,用于纸条信笺正文;霞鹜文楷 webfont 由 `index.ts` 注入 jsdelivr(`lxgw-wenkai-webfont`),覆盖广、全端一致(CJK 体积大)。
+- **母题工具箱** `src/theme/whaleKit.tsx`(react-native-svg):`WhaleMark/Waveform/Ripple/FreqBars/Seal/Tape/DotPaper/SeaPaper/LinedPaper`(LinedPaper=信笺横线)。
 - **新依赖**:`react-native-svg`(web 阶段唯一新增;expo-font/gradient 未上,留 APK 阶段)。
 
 ## 2. 底部 6 Tab（`navigation/MainTabs.tsx`）
@@ -41,10 +45,10 @@
 - 全部子页(聊天/详情/日志/反馈/管理后台/选点等):手写标题 + 扁平表头。
 
 ## 6. 待接入的 AI 生成图(位图 PNG,用户生成后再接)
-- 好友条目「展柜」按钮(现为 🏛️)。
+- 好友条目展柜入口(现为文字「TA的展柜 ›」,可换成小图标)。
 - 发布页活动类型图标(吃饭/自习/运动/其它)——**真实 App 支持管理员后台上传 `typeId.iconUrl`,零改代码**。
-- 地图藏品/宝箱按钮(现为文字标签)。
-- 提示词见对话记录;导出 2–3x 透明底。
+- 地图藏品/宝箱 marker(现为文字标签「鲸落/巨鲸落/同游/纸条」,可换 PNG)。
+- 提示词见对话记录 / NEXT-STEPS.md;导出 2–3x 透明底。
 
 ## 7. ⚠️ 临时预览脚手架（PR 前必须移除）
 仅为本地免登录看效果,**不可进正式 PR**:
@@ -74,3 +78,21 @@ npx expo export --platform web      # 产物 → dist/
 node _servedist.cjs                 # 本地 http://localhost:5190
 ```
 改代码后需重新 export 再刷新(无热更;`expo start --web` 跑不起来,缺 @expo/metro-runtime)。
+
+## 11. 第二轮迭代细化(2026-07-02)
+- **地图**:海洋色板由偏绿调成**蓝调**(与网页统一);顶栏拆成浮层——校区 pill 左上、刷新/定位圆钮右上、写纸条 FAB + 鲸落计数右下、**经纬度左下角小字**;缩放控件移左下(经纬度上方);**首次定位成功自动归中一次**(`didCenterRef`,失败停校区中心,不抢手动拖动)。
+- **好友**:申请+添加合并到右上「+」(去圆圈、深蓝字、对齐标题底);成员卡片重构为**船员名录(方案 A)**——无卡片、发丝分隔、头像+手写名+楷体消息+频率波形+「TA的展柜」文字入口。
+- **活动广场**:删掉「活动广场/我参与的」分段(占空间),「我参与的」改为**与「共 n 个活动」同排的右上小字链接**;搜索框 + 类型 chips 变窄变矮。
+- **展柜**:鲸藏/纸条切换改**悬浮文字**(去底框);藏品左移贴近稀有度栏。
+- **纸条(方案 A · 漂流瓶信笺)**:弃暖棕 → **浅蓝信笺**;正文**楷体 + 信笺横线**(`LinedPaper`),**落款/名称用手写体**;头像用首字母;去 emoji;覆盖 展柜列表/详情 + 地图拾取弹窗/结果弹窗 + 写纸条页。
+- **我**:船长证印章放大 1.5×(size 93)并锚定右边框/下分割栏距离不变(`top:67`);学号左对齐;按钮收进列表卡。
+- **假数据**:`_mock.web.ts` 补 3 条纸条(展柜纸条可见)。
+
+## 12. 自查纪律(防白屏复发)
+新增/改动屏后,除 `expo export` 外必做:
+```
+# 字体 token 用了但没 import 的静态自查(白屏根因那类）
+f=<screen.tsx>; imp=$(grep -m1 'from "../../theme"' "$f")
+for tok in BODY HAND SERIF KAI; do grep -qE "\b$tok\b" <(grep -vE 'from ".*theme"' "$f") && (echo "$imp"|grep -qE "\b$tok\b" || echo "⚠ 缺 $tok"); done
+```
+条件成熟时用 puppeteer/浏览器实际打开验证渲染(不能只看构建返回 0)。
