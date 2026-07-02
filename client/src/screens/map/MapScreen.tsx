@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Image, Dimensions, ScrollView, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { colors, typography, spacing, borderRadius, BODY } from "../../theme";
+import { WhaleMark, Waveform } from "../../theme/whaleKit";
 import { Campus, CAMPUS_BOUNDS, RARITY_COLORS } from "../../utils/constants";
 import { getActiveChests } from "../../services/chest.api";
 import { getActiveNotes } from "../../services/note.api";
@@ -256,7 +257,7 @@ export function MapScreen() {
           return <><Text style={D.ej}>{e.typeId?.iconUrl || "📌"}</Text>{e.typeId?.name && <Text style={{ fontSize: 12, fontWeight: "700", color: e.typeId?.color || "#9B59B6", marginBottom: 4 }}>{e.typeId.name}</Text>}<Text style={D.tl}>{e.title || "活动"}</Text><View style={D.tr}><View style={[D.tg, { backgroundColor: colors.primary + "18" }]}><Text style={[D.tt, { color: colors.primary }]}>👤 {e.currentParticipants||0}/{e.capacity||"∞"}人</Text></View>{e.status && <View style={[D.tg, { backgroundColor: (e.status === "recruiting" ? colors.success : colors.warning) + "18" }]}><Text style={[D.tt, { color: e.status === "recruiting" ? colors.success : colors.warning }]}>{e.status === "recruiting" ? "🟢 招募中" : "⏳"}</Text></View>}</View><View style={D.ir}><Text style={D.il}>📍</Text><Text style={D.iv}>{e.locationText || "暂无位置"}</Text></View><View style={D.ir}><Text style={D.il}>🕐</Text><Text style={D.iv}>{e.startTime ? new Date(e.startTime).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "待定"}</Text></View><View style={{ flexDirection: "row", gap: 8, width: "100%" }}><T style={[D.btn, { flex: 1, backgroundColor: colors.surfaceAlt }]} onPress={closeDialog}><Text>取消</Text></T><T style={[D.btn, { flex: 1.5, backgroundColor: colors.primary }]} onPress={() => { closeDialog(); (navigation as any).navigate("EventDetail", { eventId: e._id }); }}><Text style={{ color: "#FFF", fontWeight: "700" }}>查看详情</Text></T></View></>;
         })()}
         {dialogData?.type === "note" && (() => { const n = dialogData.data; const dist = userLocation ? getDist(userLocation.lat, userLocation.lng, n.coordinates.lat, n.coordinates.lng) : null; const inR = dist != null && dist <= 20;
-          return <View style={{width:"100%",alignItems:"center"}}><Text style={D.ej}>📝</Text><Text style={D.tl}>一张纸条</Text>{dist != null && <Text style={D.dt}>📍 距离你 {dist}m</Text>}<Text style={D.dc}>踏进二十步之内，便能拾起这片心情</Text>{inR ? <T style={{backgroundColor:"#F56C6C",borderRadius:20,paddingVertical:16,paddingHorizontal:32,width:"100%",alignItems:"center",marginTop:4}} onPress={() => handlePickupNote(n._id)}><Text style={{color:"#FFFFFF",fontWeight:"800",fontSize:17}}>📋 捡起这张纸条</Text></T> : <T style={D.pb} onPress={closeDialog}><Text style={D.pt}>知道了</Text></T>}</View>;
+          return <View style={{width:"100%",alignItems:"center"}}><View style={{marginBottom:10}}><WhaleMark size={40} color={colors.secondary} eye="#fff" /></View><Text style={D.tl}>一张漂流纸条</Text>{dist != null && <Text style={D.dt}>距离你 {dist}m</Text>}<Text style={D.dc}>踏进二十步之内，便能拾起这片心情</Text>{inR ? <T style={{backgroundColor:colors.primary,borderRadius:10,paddingVertical:15,paddingHorizontal:32,width:"100%",alignItems:"center",marginTop:4}} onPress={() => handlePickupNote(n._id)}><Text style={{color:"#FFFFFF",fontWeight:"800",fontSize:16}}>捡起这张纸条</Text></T> : <T style={D.pb} onPress={closeDialog}><Text style={D.pt}>知道了</Text></T>}</View>;
         })()}
       </T></T></Modal>
       <Modal visible={showResultModal} transparent><T style={D.ov} activeOpacity={1} onPress={() => { setShowResultModal(false); setOpenResult(null); }}><T style={D.cd} activeOpacity={1} onPress={() => {}}>
@@ -268,22 +269,26 @@ export function MapScreen() {
           <Pressable style={{position:"absolute",top:0,left:0,right:0,bottom:0,backgroundColor:"rgba(0,0,0,0.6)"}} onPress={() => setShowNoteResult(false)} />
           <View style={{flex:1,justifyContent:"center",alignItems:"center",padding:24}} pointerEvents="box-none">
             <View style={[D.cd,{pointerEvents:"auto"}]}>
-        {noteResult && <View style={{width:"100%",alignItems:"center"}}><Text style={{fontSize:56,marginBottom:12}}>📜</Text>
-          <View style={{backgroundColor:"#FFF9E6",borderRadius:16,borderWidth:1,borderColor:"#E6D5A8",width:"100%"}}>
-            <ScrollView style={{height:200}} contentContainerStyle={{padding:18}}>
-              <Text style={{fontSize:16,lineHeight:26,color:"#4A3728"}}>{noteResult.content}</Text>
+        {noteResult && <View style={{width:"100%",alignItems:"center"}}>
+          <View style={{width:72,height:72,borderRadius:36,backgroundColor:colors.secondary+"1A",borderWidth:1,borderColor:colors.secondary+"44",alignItems:"center",justifyContent:"center",marginBottom:8}}><WhaleMark size={34} color={colors.secondary} eye="#fff" /></View>
+          <View style={{backgroundColor:colors.paper,borderRadius:12,borderWidth:1,borderColor:colors.line,width:"100%"}}>
+            <ScrollView style={{height:190}} contentContainerStyle={{padding:18}}>
+              <Text style={{fontFamily:BODY,fontSize:15.5,lineHeight:26,color:colors.ink}}>{noteResult.content}</Text>
             </ScrollView>
           </View>
           {!noteResult.isAnonymous && <View style={{flexDirection:"row",alignItems:"center",marginTop:14,gap:8}}>
-            <View style={{width:32,height:32,borderRadius:16,backgroundColor:"#E8D5B7",alignItems:"center",justifyContent:"center"}}><Text style={{fontSize:16}}>👤</Text></View>
-            <View><Text style={{fontWeight:"700",fontSize:14,color:"#4A3728"}}>{noteResult.authorNickname}</Text>{noteResult.authorNumericId > 0 ? <Text style={{fontSize:11,color:"#9B8C7C"}}>ID {noteResult.authorNumericId}</Text> : null}</View>
+            <View style={{width:30,height:30,borderRadius:15,backgroundColor:colors.secondary,alignItems:"center",justifyContent:"center"}}><Text style={{fontSize:13,fontWeight:"700",color:"#fff"}}>{(noteResult.authorNickname||"?").charAt(0)}</Text></View>
+            <View><Text style={{fontFamily:BODY,fontWeight:"700",fontSize:14,color:colors.ink}}>{noteResult.authorNickname}</Text>{noteResult.authorNumericId > 0 ? <Text style={{fontSize:11,color:colors.faded}}>ID {noteResult.authorNumericId}</Text> : null}</View>
           </View>}
-          <View style={{flexDirection:"row",marginTop:14,gap:24}}>
-            <Text style={{fontSize:11,color:"#9B8C7C"}}>🕐 {new Date(noteResult.createdAt).toLocaleString("zh-CN",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})} 留下</Text>
-            <Text style={{fontSize:11,color:"#9B8C7C"}}>📋 {new Date(noteResult.pickedAt).toLocaleString("zh-CN",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})} 拾取</Text>
+          <View style={{marginTop:14,alignItems:"center",gap:6}}>
+            <Waveform w={120} h={9} color={colors.secondary} sw={1.3} opacity={0.6} />
+            <View style={{flexDirection:"row",gap:20}}>
+              <Text style={{fontSize:11,color:colors.faded}}>{new Date(noteResult.createdAt).toLocaleString("zh-CN",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})} 留下</Text>
+              <Text style={{fontSize:11,color:colors.faded}}>{new Date(noteResult.pickedAt).toLocaleString("zh-CN",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})} 拾起</Text>
+            </View>
           </View>
-          <T style={{backgroundColor:"#C8956C",borderRadius:20,paddingVertical:16,width:"100%",alignItems:"center",marginTop:18}} onPress={() => setShowNoteResult(false)}>
-            <Text style={{color:"#FFFFFF",fontWeight:"800",fontSize:16}}>📋 收起纸条</Text>
+          <T style={{backgroundColor:colors.primary,borderRadius:8,paddingVertical:14,width:"100%",alignItems:"center",marginTop:18}} onPress={() => setShowNoteResult(false)}>
+            <Text style={{color:"#FFFFFF",fontWeight:"800",fontSize:15}}>收起纸条</Text>
           </T></View>}
       </View></View></View></Modal>
     </View>

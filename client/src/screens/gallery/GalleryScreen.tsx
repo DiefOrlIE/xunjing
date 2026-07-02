@@ -6,7 +6,7 @@ import {
 import { colors, typography, spacing, borderRadius, HAND, SERIF } from "../../theme";
 import { CollectionCard } from "../../components/CollectionCard";
 import { EmptyState } from "../../components/EmptyState";
-import { DotPaper } from "../../theme/whaleKit";
+import { DotPaper, Waveform, WhaleMark } from "../../theme/whaleKit";
 import { RARITY_COLORS } from "../../utils/constants";
 import { getMyCollections } from "../../services/collection.api";
 import { getMyNotes } from "../../services/note.api";
@@ -152,26 +152,38 @@ export function GalleryScreen({ navigation }: any) {
       {showNotes ? (
         <View style={{ flex: 1 }}>
           {notesLoading ? <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 60 }} /> :
-           myNotes.length === 0 ? <View style={{ alignItems: "center", paddingTop: 80 }}><Text style={{ fontSize: 48, marginBottom: 12 }}>📝</Text><Text style={{ ...typography.body, color: colors.textHint }}>还未曾拾起过谁的心事</Text><Text style={{ ...typography.caption, color: colors.textHint, marginTop: 4 }}>去地图上发现并拾取吧！</Text></View> :
+           myNotes.length === 0 ? (
+             <View style={{ alignItems: "center", paddingTop: 80 }}>
+               <View style={styles.noteEmptyMark}><WhaleMark size={40} color={colors.secondary} eye="#fff" /></View>
+               <Text style={{ ...typography.body, color: colors.textHint, marginTop: 14 }}>还没拾起过谁的心事</Text>
+               <Text style={{ ...typography.caption, color: colors.textHint, marginTop: 4 }}>去地图上发现并拾取吧</Text>
+             </View>
+           ) :
            <FlatList data={myNotes} keyExtractor={(n: any) => n._id} contentContainerStyle={{ padding: spacing.md }}
              renderItem={({ item: n }: any) => (
-               <TouchableOpacity activeOpacity={0.7} onPress={() => setSelectedNote(n)} style={styles.noteCard}>
-                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+               <TouchableOpacity activeOpacity={0.8} onPress={() => setSelectedNote(n)} style={styles.noteCard}>
+                 <View style={styles.noteCardTop}>
                    {n.isAnonymous ? (
-                     <View style={{flexDirection:"row",alignItems:"center",gap:6}}><Text style={{fontSize:18}}>🕶️</Text><Text style={{fontWeight:"600",fontSize:13,color:"#9B8C7C"}}>匿名</Text></View>
+                     <View style={styles.noteWho}>
+                       <View style={[styles.noteAvatar, { backgroundColor: colors.faded + "2E" }]}><Text style={[styles.noteAvatarTxt, { color: colors.sub }]}>?</Text></View>
+                       <Text style={styles.noteName}>匿名漂流</Text>
+                     </View>
                    ) : (
-                     <View style={{flexDirection:"row",alignItems:"center",gap:8}}>
-                       <View style={{width:28,height:28,borderRadius:14,backgroundColor:"#E8D5B7",alignItems:"center",justifyContent:"center"}}><Text style={{fontSize:14}}>👤</Text></View>
+                     <View style={styles.noteWho}>
+                       <View style={styles.noteAvatar}><Text style={styles.noteAvatarTxt}>{(n.authorNickname || "?").charAt(0)}</Text></View>
                        <View>
-                         <Text style={{fontWeight:"700",fontSize:13,color:"#4A3728"}}>{n.authorNickname}</Text>
-                         {(n.authorNumericId && n.authorNumericId > 0) ? <Text style={{fontSize:10,color:"#9B8C7C"}}>ID {n.authorNumericId}</Text> : null}
+                         <Text style={styles.noteName}>{n.authorNickname}</Text>
+                         {(n.authorNumericId && n.authorNumericId > 0) ? <Text style={styles.noteMeta}>ID {n.authorNumericId}</Text> : null}
                        </View>
                      </View>
                    )}
-                   <Text style={{fontSize:10,color:"#B8A898"}}>{new Date(n.pickedAt).toLocaleDateString("zh-CN",{month:"short",day:"numeric"})}</Text>
+                   <Text style={styles.noteDate}>{new Date(n.pickedAt).toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}</Text>
                  </View>
-                 <Text style={{fontSize:15,lineHeight:22,color:"#4A3728",fontStyle:"italic"}} numberOfLines={3}>{n.content}</Text>
-                 <Text style={{fontSize:10,color:"#B8A898",marginTop:8}}>📋 {new Date(n.pickedAt).toLocaleString("zh-CN",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})} 拾取</Text>
+                 <Text style={styles.noteContent} numberOfLines={3}>{n.content}</Text>
+                 <View style={styles.noteFoot}>
+                   <Waveform w={38} h={7} color={colors.secondary} sw={1.2} opacity={0.6} />
+                   <Text style={styles.noteMeta}>{new Date(n.pickedAt).toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })} 拾起</Text>
+                 </View>
                </TouchableOpacity>
              )}
            />
@@ -231,24 +243,27 @@ export function GalleryScreen({ navigation }: any) {
 
       <Modal visible={!!selectedNote} transparent animationType="fade" onRequestClose={() => setSelectedNote(null)}>
         <View style={{flex:1,backgroundColor:"rgba(0,0,0,0.55)",justifyContent:"center",alignItems:"center",padding:24}}>
-          <View style={{backgroundColor:"#FFFBF2",borderRadius:20,padding:24,width:"100%",maxWidth:400}}>
-            {selectedNote && (<View style={{width:"100%",alignItems:"center"}}>
-              <Text style={{fontSize:56,marginBottom:12}}>📜</Text>
-              <View style={{backgroundColor:"#FFF9E6",borderRadius:16,borderWidth:1,borderColor:"#E6D5A8",width:"100%",height:200}}>
-                <ScrollView style={{flex:1}} nestedScrollEnabled contentContainerStyle={{padding:18}}>
-                  <Text style={{fontSize:16,lineHeight:26,color:"#4A3728"}}>{selectedNote.content}</Text>
+          <View style={{ backgroundColor: colors.card, borderRadius: 18, padding: 22, width: "100%", maxWidth: 400, borderWidth: 1, borderColor: colors.line }}>
+            {selectedNote && (<View style={{ width: "100%", alignItems: "center" }}>
+              <View style={styles.noteEmptyMark}><WhaleMark size={34} color={colors.secondary} eye="#fff" /></View>
+              <View style={styles.letter}>
+                <ScrollView style={{ flex: 1 }} nestedScrollEnabled contentContainerStyle={{ padding: 18 }}>
+                  <Text style={styles.letterText}>{selectedNote.content}</Text>
                 </ScrollView>
               </View>
-              {!selectedNote.isAnonymous && <View style={{flexDirection:"row",alignItems:"center",marginTop:14,gap:8}}>
-                <View style={{width:32,height:32,borderRadius:16,backgroundColor:"#E8D5B7",alignItems:"center",justifyContent:"center"}}><Text style={{fontSize:16}}>👤</Text></View>
-                <View><Text style={{fontWeight:"700",fontSize:14,color:"#4A3728"}}>{selectedNote.authorNickname}</Text>{(selectedNote.authorNumericId && selectedNote.authorNumericId > 0) ? <Text style={{fontSize:11,color:"#9B8C7C"}}>ID {selectedNote.authorNumericId}</Text> : null}</View>
+              {!selectedNote.isAnonymous && <View style={{ flexDirection: "row", alignItems: "center", marginTop: 14, gap: 8 }}>
+                <View style={styles.noteAvatar}><Text style={styles.noteAvatarTxt}>{(selectedNote.authorNickname || "?").charAt(0)}</Text></View>
+                <View><Text style={styles.noteName}>{selectedNote.authorNickname}</Text>{(selectedNote.authorNumericId && selectedNote.authorNumericId > 0) ? <Text style={styles.noteMeta}>ID {selectedNote.authorNumericId}</Text> : null}</View>
               </View>}
-              <View style={{flexDirection:"row",marginTop:14,gap:24}}>
-                <Text style={{fontSize:11,color:"#9B8C7C"}}>🕐 {new Date(selectedNote.createdAt).toLocaleString("zh-CN",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})} 留下</Text>
-                <Text style={{fontSize:11,color:"#9B8C7C"}}>📋 {selectedNote.pickedAt ? new Date(selectedNote.pickedAt).toLocaleString("zh-CN",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) : ""} 拾取</Text>
+              <View style={{ marginTop: 14, alignItems: "center", gap: 6 }}>
+                <Waveform w={120} h={9} color={colors.secondary} sw={1.3} opacity={0.6} />
+                <View style={{ flexDirection: "row", gap: 20 }}>
+                  <Text style={styles.noteMeta}>{new Date(selectedNote.createdAt).toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })} 留下</Text>
+                  <Text style={styles.noteMeta}>{selectedNote.pickedAt ? new Date(selectedNote.pickedAt).toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""} 拾起</Text>
+                </View>
               </View>
-              <TouchableOpacity style={{backgroundColor:"#C8956C",borderRadius:20,paddingVertical:16,width:"100%",alignItems:"center",marginTop:18}} onPress={() => setSelectedNote(null)}>
-                <Text style={{color:"#FFFFFF",fontWeight:"800",fontSize:16}}>📋 收起纸条</Text>
+              <TouchableOpacity style={styles.noteCloseBtn} onPress={() => setSelectedNote(null)}>
+                <Text style={styles.noteCloseTxt}>收起纸条</Text>
               </TouchableOpacity>
             </View>)}
           </View>
@@ -289,5 +304,20 @@ const styles = StyleSheet.create({
   sectionRule: { flex: 1, height: 1, borderBottomWidth: 1.5, borderStyle: "dotted" },
   sectionCount: { ...typography.caption, color: colors.textHint },
   row: { flexDirection: "row", justifyContent: "flex-start", gap: spacing.sm, marginBottom: spacing.sm },
-  noteCard: { backgroundColor: "#FFFBF2", borderRadius: 16, padding: 18, marginBottom: 12, marginHorizontal: 4, borderWidth: 1, borderColor: "#E6D5A8", shadowColor: "#C8956C", shadowOffset: {width:0,height:2}, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2 },
+  // 纸条 · 漂流瓶信笺（浅滩）
+  noteCard: { backgroundColor: colors.card, borderRadius: 12, padding: 16, marginBottom: 12, marginHorizontal: 4, borderWidth: 1, borderColor: colors.line, shadowColor: colors.ink, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
+  noteCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 9 },
+  noteWho: { flexDirection: "row", alignItems: "center", gap: 8 },
+  noteAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.secondary, alignItems: "center", justifyContent: "center" },
+  noteAvatarTxt: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  noteName: { fontFamily: BODY, fontWeight: "700", fontSize: 13, color: colors.ink },
+  noteMeta: { fontFamily: BODY, fontSize: 10.5, color: colors.faded },
+  noteDate: { fontFamily: BODY, fontSize: 10.5, color: colors.faded },
+  noteContent: { fontFamily: BODY, fontSize: 14.5, lineHeight: 22, color: colors.sub, fontStyle: "italic" },
+  noteFoot: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
+  noteEmptyMark: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.secondary + "1A", borderWidth: 1, borderColor: colors.secondary + "44", alignItems: "center", justifyContent: "center" },
+  letter: { width: "100%", height: 190, marginTop: 12, backgroundColor: colors.paper, borderRadius: 12, borderWidth: 1, borderColor: colors.line },
+  letterText: { fontFamily: BODY, fontSize: 15.5, lineHeight: 26, color: colors.ink },
+  noteCloseBtn: { backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 14, width: "100%", alignItems: "center", marginTop: 18 },
+  noteCloseTxt: { fontFamily: BODY, color: "#fff", fontWeight: "800", fontSize: 15 },
 });

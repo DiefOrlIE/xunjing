@@ -71,7 +71,6 @@ export function WriteNoteScreen({ route, navigation }: any) {
         {/* 匿名开关 */}
         <View style={styles.anonRow}>
           <View style={styles.anonLabel}>
-            <Text style={styles.anonEmoji}>{isAnonymous ? "🕶️" : "👤"}</Text>
             <Text style={styles.anonText}>
               {isAnonymous ? "匿名留下" : "实名留下"}
             </Text>
@@ -94,7 +93,7 @@ export function WriteNoteScreen({ route, navigation }: any) {
           {submitting ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.submitText}>📮 留下纸条</Text>
+            <Text style={styles.submitText}>留下纸条</Text>
           )}
         </TouchableOpacity>
       </View>
