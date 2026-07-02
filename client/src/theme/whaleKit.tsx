@@ -85,6 +85,20 @@ export function DotPaper({ color = colors.grid, gap = 16, r = 1.3 }: { color?: s
   );
 }
 
+/* ── 信笺横线（纸条正文）：绝对铺满,行距 gap 需与正文 lineHeight 对齐 ── */
+export function LinedPaper({ color = colors.line, gap = 28 }: { color?: string; gap?: number }) {
+  return (
+    <Svg style={StyleSheet.absoluteFill as any} pointerEvents="none">
+      <Defs>
+        <Pattern id="whaleLines" width={gap} height={gap} patternUnits="userSpaceOnUse">
+          <Line x1={0} y1={gap - 0.5} x2={gap} y2={gap - 0.5} stroke={color} strokeWidth={1} />
+        </Pattern>
+      </Defs>
+      <Rect x={0} y={0} width="100%" height="100%" fill="url(#whaleLines)" />
+    </Svg>
+  );
+}
+
 /* ── 海图方格纸背景（其余页）── */
 export function SeaPaper({ color = colors.grid, gap = 22 }: { color?: string; gap?: number }) {
   return (

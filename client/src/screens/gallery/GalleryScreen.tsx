@@ -3,10 +3,10 @@ import {
   View, Text, StyleSheet, TouchableOpacity, SectionList, FlatList,
   RefreshControl, ActivityIndicator, Modal, ScrollView,
 } from "react-native";
-import { colors, typography, spacing, borderRadius, HAND, SERIF } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, SERIF, KAI } from "../../theme";
 import { CollectionCard } from "../../components/CollectionCard";
 import { EmptyState } from "../../components/EmptyState";
-import { DotPaper, Waveform, WhaleMark } from "../../theme/whaleKit";
+import { DotPaper, Waveform, WhaleMark, LinedPaper } from "../../theme/whaleKit";
 import { RARITY_COLORS } from "../../utils/constants";
 import { getMyCollections } from "../../services/collection.api";
 import { getMyNotes } from "../../services/note.api";
@@ -247,13 +247,14 @@ export function GalleryScreen({ navigation }: any) {
             {selectedNote && (<View style={{ width: "100%", alignItems: "center" }}>
               <View style={styles.noteEmptyMark}><WhaleMark size={34} color={colors.secondary} eye="#fff" /></View>
               <View style={styles.letter}>
-                <ScrollView style={{ flex: 1 }} nestedScrollEnabled contentContainerStyle={{ padding: 18 }}>
+                <LinedPaper color={colors.line} gap={28} />
+                <ScrollView style={{ flex: 1 }} nestedScrollEnabled contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 5, paddingBottom: 14 }}>
                   <Text style={styles.letterText}>{selectedNote.content}</Text>
                 </ScrollView>
               </View>
               {!selectedNote.isAnonymous && <View style={{ flexDirection: "row", alignItems: "center", marginTop: 14, gap: 8 }}>
                 <View style={styles.noteAvatar}><Text style={styles.noteAvatarTxt}>{(selectedNote.authorNickname || "?").charAt(0)}</Text></View>
-                <View><Text style={styles.noteName}>{selectedNote.authorNickname}</Text>{(selectedNote.authorNumericId && selectedNote.authorNumericId > 0) ? <Text style={styles.noteMeta}>ID {selectedNote.authorNumericId}</Text> : null}</View>
+                <View><Text style={styles.noteSign}>{selectedNote.authorNickname}</Text>{(selectedNote.authorNumericId && selectedNote.authorNumericId > 0) ? <Text style={styles.noteMeta}>ID {selectedNote.authorNumericId}</Text> : null}</View>
               </View>}
               <View style={{ marginTop: 14, alignItems: "center", gap: 6 }}>
                 <Waveform w={120} h={9} color={colors.secondary} sw={1.3} opacity={0.6} />
@@ -311,13 +312,14 @@ const styles = StyleSheet.create({
   noteAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.secondary, alignItems: "center", justifyContent: "center" },
   noteAvatarTxt: { fontSize: 13, fontWeight: "700", color: "#fff" },
   noteName: { fontFamily: BODY, fontWeight: "700", fontSize: 13, color: colors.ink },
+  noteSign: { fontFamily: HAND, fontSize: 17, color: colors.ink },
   noteMeta: { fontFamily: BODY, fontSize: 10.5, color: colors.faded },
   noteDate: { fontFamily: BODY, fontSize: 10.5, color: colors.faded },
-  noteContent: { fontFamily: BODY, fontSize: 14.5, lineHeight: 22, color: colors.sub, fontStyle: "italic" },
+  noteContent: { fontFamily: KAI, fontSize: 15, lineHeight: 24, color: colors.ink },
   noteFoot: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
   noteEmptyMark: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.secondary + "1A", borderWidth: 1, borderColor: colors.secondary + "44", alignItems: "center", justifyContent: "center" },
-  letter: { width: "100%", height: 190, marginTop: 12, backgroundColor: colors.paper, borderRadius: 12, borderWidth: 1, borderColor: colors.line },
-  letterText: { fontFamily: BODY, fontSize: 15.5, lineHeight: 26, color: colors.ink },
+  letter: { width: "100%", height: 190, marginTop: 12, backgroundColor: colors.paper, borderRadius: 12, borderWidth: 1, borderColor: colors.line, overflow: "hidden" },
+  letterText: { fontFamily: KAI, fontSize: 16, lineHeight: 28, color: colors.ink },
   noteCloseBtn: { backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 14, width: "100%", alignItems: "center", marginTop: 18 },
   noteCloseTxt: { fontFamily: BODY, color: "#fff", fontWeight: "800", fontSize: 15 },
 });

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Image, Dimensions, ScrollView, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { colors, typography, spacing, borderRadius, BODY } from "../../theme";
-import { WhaleMark, Waveform } from "../../theme/whaleKit";
+import { colors, typography, spacing, borderRadius, BODY, HAND, KAI } from "../../theme";
+import { WhaleMark, Waveform, LinedPaper } from "../../theme/whaleKit";
 import { Campus, CAMPUS_BOUNDS, RARITY_COLORS } from "../../utils/constants";
 import { getActiveChests } from "../../services/chest.api";
 import { getActiveNotes } from "../../services/note.api";
@@ -271,14 +271,15 @@ export function MapScreen() {
             <View style={[D.cd,{pointerEvents:"auto"}]}>
         {noteResult && <View style={{width:"100%",alignItems:"center"}}>
           <View style={{width:72,height:72,borderRadius:36,backgroundColor:colors.secondary+"1A",borderWidth:1,borderColor:colors.secondary+"44",alignItems:"center",justifyContent:"center",marginBottom:8}}><WhaleMark size={34} color={colors.secondary} eye="#fff" /></View>
-          <View style={{backgroundColor:colors.paper,borderRadius:12,borderWidth:1,borderColor:colors.line,width:"100%"}}>
-            <ScrollView style={{height:190}} contentContainerStyle={{padding:18}}>
-              <Text style={{fontFamily:BODY,fontSize:15.5,lineHeight:26,color:colors.ink}}>{noteResult.content}</Text>
+          <View style={{backgroundColor:colors.paper,borderRadius:12,borderWidth:1,borderColor:colors.line,width:"100%",height:190,overflow:"hidden"}}>
+            <LinedPaper color={colors.line} gap={28} />
+            <ScrollView style={{flex:1}} contentContainerStyle={{paddingHorizontal:18,paddingTop:5,paddingBottom:14}}>
+              <Text style={{fontFamily:KAI,fontSize:16,lineHeight:28,color:colors.ink}}>{noteResult.content}</Text>
             </ScrollView>
           </View>
           {!noteResult.isAnonymous && <View style={{flexDirection:"row",alignItems:"center",marginTop:14,gap:8}}>
             <View style={{width:30,height:30,borderRadius:15,backgroundColor:colors.secondary,alignItems:"center",justifyContent:"center"}}><Text style={{fontSize:13,fontWeight:"700",color:"#fff"}}>{(noteResult.authorNickname||"?").charAt(0)}</Text></View>
-            <View><Text style={{fontFamily:BODY,fontWeight:"700",fontSize:14,color:colors.ink}}>{noteResult.authorNickname}</Text>{noteResult.authorNumericId > 0 ? <Text style={{fontSize:11,color:colors.faded}}>ID {noteResult.authorNumericId}</Text> : null}</View>
+            <View><Text style={{fontFamily:HAND,fontSize:17,color:colors.ink}}>{noteResult.authorNickname}</Text>{noteResult.authorNumericId > 0 ? <Text style={{fontSize:11,color:colors.faded}}>ID {noteResult.authorNumericId}</Text> : null}</View>
           </View>}
           <View style={{marginTop:14,alignItems:"center",gap:6}}>
             <Waveform w={120} h={9} color={colors.secondary} sw={1.3} opacity={0.6} />

@@ -22,7 +22,9 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
     const pre1 = document.createElement("link"); pre1.rel = "preconnect"; pre1.href = "https://fonts.googleapis.com";
     const pre2 = document.createElement("link"); pre2.rel = "preconnect"; pre2.href = "https://fonts.gstatic.com"; pre2.crossOrigin = "anonymous";
     const link = document.createElement("link"); link.rel = "stylesheet"; link.href = FONT_HREF; link.setAttribute("data-whale-fonts", "");
-    document.head.appendChild(pre1); document.head.appendChild(pre2); document.head.appendChild(link);
+    // 楷体（正文用）：霞鹜文楷 LXGW WenKai
+    const kai = document.createElement("link"); kai.rel = "stylesheet"; kai.href = "https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css";
+    document.head.appendChild(pre1); document.head.appendChild(pre2); document.head.appendChild(link); document.head.appendChild(kai);
   }
 }
 

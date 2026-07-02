@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TextInput,
   TouchableOpacity, Switch, Alert, ActivityIndicator,
 } from "react-native";
-import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, KAI } from "../../theme";
 import { createNote } from "../../services/note.api";
 
 export function WriteNoteScreen({ route, navigation }: any) {
@@ -120,9 +120,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   textArea: {
-    flex: 1, ...typography.body, color: colors.textPrimary,
+    flex: 1, ...typography.body, fontFamily: KAI, color: colors.textPrimary,
     backgroundColor: colors.surface, borderRadius: borderRadius.lg,
-    padding: spacing.md, fontSize: 16, lineHeight: 24,
+    padding: spacing.md, fontSize: 16, lineHeight: 26,
     borderWidth: 1, borderColor: colors.border,
     maxHeight: 300,
   },
