@@ -34,7 +34,7 @@ const loadMapLibre = () => new Promise<any>((resolve) => {
   const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css"; document.head.appendChild(link);
   if (!document.getElementById("whale-mk-css")) {
     const st = document.createElement("style"); st.id = "whale-mk-css";
-    st.textContent = ".wmk{position:relative;width:0;height:0}.wmk .ping{position:absolute;left:0;top:0;width:16px;height:16px;margin:-8px;border-radius:50%;background:var(--c);animation:wping 2.4s ease-out infinite}.wmk .ping.b{animation-delay:1.2s}.wmk .core{position:absolute;left:0;top:0;width:15px;height:15px;margin:-7.5px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}.wmk .tag{position:absolute;left:0;top:11px;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:var(--c);text-shadow:0 1px 2px #fff,0 0 3px #fff}.wmk.me .core{width:19px;height:19px;margin:-9.5px}.wmk.me .halo{position:absolute;left:0;top:0;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(44,130,201,.14);border:1px solid rgba(44,130,201,.35)}@keyframes wping{0%{transform:scale(.5);opacity:.55}100%{transform:scale(3);opacity:0}}.maplibregl-ctrl-bottom-left{bottom:26px}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{margin-left:12px}";
+    st.textContent = ".wmk{position:relative;width:0;height:0}.wmk .ping{position:absolute;left:0;top:0;width:16px;height:16px;margin:-8px;border-radius:50%;background:var(--c);animation:wping 2.4s ease-out infinite}.wmk .ping.b{animation-delay:1.2s}.wmk .core{position:absolute;left:0;top:0;width:15px;height:15px;margin:-7.5px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}.wmk .tag{position:absolute;left:0;top:11px;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:var(--c);text-shadow:0 1px 2px #fff,0 0 3px #fff}.wmk.me .core{width:19px;height:19px;margin:-9.5px}.wmk.me .halo{position:absolute;left:0;top:0;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(44,130,201,.14);border:1px solid rgba(44,130,201,.35)}.wmk .wicon{position:absolute;left:0;top:0;width:30px;height:30px;margin:-56px -15px 0;border-radius:7px;box-shadow:0 2px 6px rgba(0,0,0,.28);background:#fff;object-fit:cover}@keyframes wping{0%{transform:scale(.5);opacity:.55}100%{transform:scale(3);opacity:0}}.maplibregl-ctrl-bottom-left{bottom:26px}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{margin-left:12px}";
     document.head.appendChild(st);
   }
   const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"; s.onload = () => resolve((window as any).maplibregl); s.onerror = () => resolve(null); document.head.appendChild(s);
@@ -58,10 +58,15 @@ function recolorMap(map: any) {
   });
 }
 
-// marker DOM 元素（涟漪 + 核心 + 标签），me=蓝色定位点
-function mkEl(color: string, tag: string, me?: boolean) {
+const ICON_WHALEFALL = (require("../../../assets/icons/icon_whalefall.png") as any)?.uri;
+const ICON_BIGWHALEFALL = (require("../../../assets/icons/icon_bigwhalefall.png") as any)?.uri;
+
+// marker DOM 元素（涟漪 + 核心 + 标签），me=蓝色定位点，icon=悬浮图标(鲸落/巨鲸落)
+function mkEl(color: string, tag: string, me?: boolean, icon?: any) {
   const d = document.createElement("div"); d.className = "wmk" + (me ? " me" : ""); (d.style as any).setProperty("--c", color);
-  d.innerHTML = (me ? '<span class="halo"></span>' : "") + '<span class="ping"></span><span class="ping b"></span><span class="core"></span>' + (tag ? '<span class="tag">' + tag + "</span>" : "");
+  d.innerHTML = (me ? '<span class="halo"></span>' : "") + '<span class="ping"></span><span class="ping b"></span><span class="core"></span>'
+    + (icon ? '<img class="wicon" src="' + icon + '" />' : "")
+    + (tag ? '<span class="tag" style="' + (icon ? "top:20px" : "") + '">' + tag + "</span>" : "");
   return d;
 }
 
@@ -175,15 +180,15 @@ export function MapScreen() {
   const updateMarkers = (ch: any[], ev: any[], nt: any[] = []) => {
     if (!mapRef.current || !ML) return;
     (markersRef.current || []).forEach((m: any) => m.remove()); markersRef.current = [];
-    const add = (latGcj: number, lngGcj: number, color: string, tag: string, onClick: () => void) => {
+    const add = (latGcj: number, lngGcj: number, color: string, tag: string, onClick: () => void, icon?: string) => {
       const w = gcj02ToWgs84(latGcj, lngGcj);
-      const el = mkEl(color, tag, false); el.style.cursor = "pointer";
+      const el = mkEl(color, tag, false, icon); el.style.cursor = "pointer";
       el.addEventListener("click", (ev2) => { ev2.stopPropagation(); onClick(); });
       const m = new ML.Marker({ element: el, anchor: "center" }).setLngLat([w.lng, w.lat]).addTo(mapRef.current);
       markersRef.current.push(m);
     };
     ch.forEach((c, i) => { const a = c.type === "advanced";
-      add(c.coordinates.lat, c.coordinates.lng, a ? colors.accent : colors.gold, a ? "巨鲸落" : "鲸落", () => { setDialogData({ type: a ? "advancedChest" : "normalChest", data: { ...c, label: "#" + (i + 1) } }); setDialogVisible(true); });
+      add(c.coordinates.lat, c.coordinates.lng, a ? colors.accent : colors.gold, a ? "巨鲸落" : "鲸落", () => { setDialogData({ type: a ? "advancedChest" : "normalChest", data: { ...c, label: "#" + (i + 1) } }); setDialogVisible(true); }, a ? ICON_BIGWHALEFALL : ICON_WHALEFALL);
     });
     ev.forEach((e) => { add(e.meetCoordinates.lat, e.meetCoordinates.lng, e.typeId?.color || colors.primary, "同游", () => { setDialogData({ type: "event", data: e }); setDialogVisible(true); }); });
     nt.forEach((n: any) => { add(n.coordinates.lat, n.coordinates.lng, colors.gold, "纸条", () => { setDialogData({ type: "note", data: n }); setDialogVisible(true); }); });
@@ -236,8 +241,8 @@ export function MapScreen() {
         <View style={S.brStack}>
           <T style={S.noteBtn} onPress={() => { if (userLocation) { (navigation as any).navigate("WriteNote", { userLocation, campus }); } }}><Text style={S.fabGlyph}>✎</Text></T>
           <View style={S.countRow}>
-            <View style={S.countChip}><View style={[S.dot, { backgroundColor: colors.gold }]} /><Text style={S.cn}>{nc.length}</Text></View>
-            <View style={S.countChip}><View style={[S.dot, { backgroundColor: colors.accent }]} /><Text style={S.cn}>{ac.length}</Text></View>
+            <View style={S.countChip}><Image source={require("../../../assets/icons/icon_whalefall.png")} style={S.countIcon} /><Text style={S.cn}>{nc.length}</Text></View>
+            <View style={S.countChip}><Image source={require("../../../assets/icons/icon_bigwhalefall.png")} style={S.countIcon} /><Text style={S.cn}>{ac.length}</Text></View>
           </View>
         </View>
         {/* 左下：经纬度小字 + 重试 */}
@@ -306,11 +311,12 @@ const S = StyleSheet.create({
   topRight: { position: "absolute", top: 52, right: 12, gap: 8, zIndex: 30 },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.95)", justifyContent: "center", alignItems: "center", shadowColor: colors.ink, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 5, elevation: 4 },
   iconGlyph: { fontSize: 20, color: colors.primary, fontWeight: "700" },
-  brStack: { position: "absolute", right: 12, bottom: 24, alignItems: "flex-end", gap: 10, zIndex: 30 },
-  countRow: { flexDirection: "row", gap: 6 },
-  countChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  brStack: { position: "absolute", right: 12, bottom: 24, alignItems: "flex-end", gap: 12, zIndex: 30 },
+  countRow: { flexDirection: "row", gap: 9 },
+  countChip: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 999, paddingHorizontal: 15, paddingVertical: 8 },
   dot: { width: 11, height: 11, borderRadius: 6 },
-  cn: { fontWeight: "800", fontSize: 14, color: colors.ink },
+  countIcon: { width: 27, height: 27, borderRadius: 6 },
+  cn: { fontWeight: "800", fontSize: 21, color: colors.ink },
   noteBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary, justifyContent: "center", alignItems: "center", shadowColor: colors.ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 5 },
   fabGlyph: { fontSize: 22, color: "#fff", fontWeight: "700" },
   coordBL: { position: "absolute", left: 12, bottom: 4, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(27,58,91,0.72)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, zIndex: 30 },

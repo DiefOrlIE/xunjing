@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, Alert, TextInput,
+  RefreshControl, Alert, TextInput, Image,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { colors, typography, spacing, borderRadius, HAND, SERIF, BODY, KAI } from "../../theme";
@@ -86,10 +86,18 @@ export function FriendListScreen({ navigation }: any) {
         <Text style={styles.rosterMsg} numberOfLines={1}>{item.lastMessage || "暂无消息"}</Text>
       </View>
       <View style={styles.rosterRight}>
-        <Waveform w={30} h={9} color={colors.secondary} sw={1.3} opacity={0.75} />
         <TouchableOpacity
           onPress={(e) => { e.stopPropagation?.(); navigation.navigate("UserGallery", { userId: item.userId, nickname: item.nickname }); }}
           activeOpacity={0.7}
+          style={styles.rosterTopRow}
+        >
+          <Image source={require("../../../assets/icons/icon_gallery.png")} style={styles.rosterGalleryIcon} />
+          <Waveform w={30} h={9} color={colors.secondary} sw={1.3} opacity={0.75} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={(e) => { e.stopPropagation?.(); navigation.navigate("UserGallery", { userId: item.userId, nickname: item.nickname }); }}
+          activeOpacity={0.7}
+          style={styles.rosterGalleryBtn}
         >
           <Text style={styles.rosterGalleryTxt}>TA的展柜 ›</Text>
         </TouchableOpacity>
@@ -247,6 +255,9 @@ const styles = StyleSheet.create({
   rosterId: { fontFamily: BODY, fontSize: 10, color: colors.faded },
   rosterMsg: { fontFamily: KAI, fontSize: 12.5, color: colors.sub },
   rosterRight: { alignItems: "flex-end", gap: 5 },
+  rosterTopRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  rosterGalleryBtn: { marginTop: 3 },
+  rosterGalleryIcon: { width: 28, height: 28, borderRadius: 7 },
   rosterGalleryTxt: { fontFamily: BODY, fontSize: 11.5, fontWeight: "700", color: colors.primary },
   emptyList: { flex: 1 },
   listContent: { paddingBottom: 100, paddingTop: 2 },
