@@ -4,7 +4,8 @@ import {
   RefreshControl, Alert, TextInput,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { colors, typography, spacing, borderRadius, HAND, SERIF } from "../../theme";
+import { colors, typography, spacing, borderRadius, HAND, SERIF, BODY, KAI } from "../../theme";
+import { Waveform } from "../../theme/whaleKit";
 import { Avatar } from "../../components/Avatar";
 import { EmptyState } from "../../components/EmptyState";
 import { getFriends, getFriendRequests, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } from "../../services/friend.api";
@@ -72,26 +73,27 @@ export function FriendListScreen({ navigation }: any) {
 
   const renderFriend = ({ item }: { item: FriendData }) => (
     <TouchableOpacity
-      style={styles.friendItem}
+      style={styles.rosterRow}
       activeOpacity={0.7}
       onPress={() => navigation.navigate("Chat", { friend: { id: item.id, userId: item.userId, nickname: item.nickname, avatar: item.avatar } })}
     >
-      <Avatar uri={item.avatar || undefined} size={52} emoji={item.nickname.charAt(0)} />
-      <View style={styles.friendInfo}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Text style={styles.friendName}>{item.nickname}</Text>
-          <Text style={{ fontSize: 10, color: colors.textHint }}>ID:{item.userId}</Text>
+      <Avatar uri={item.avatar || undefined} size={46} emoji={item.nickname.charAt(0)} />
+      <View style={styles.rosterInfo}>
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 7 }}>
+          <Text style={styles.rosterName}>{item.nickname}</Text>
+          <Text style={styles.rosterId}>ID {item.userId}</Text>
         </View>
-        <Text style={styles.friendLastMsg} numberOfLines={1}>
-          {item.lastMessage || "暂无消息"}
-        </Text>
+        <Text style={styles.rosterMsg} numberOfLines={1}>{item.lastMessage || "暂无消息"}</Text>
       </View>
-      <TouchableOpacity
-        style={styles.galleryBtn}
-        onPress={(e) => { e.stopPropagation?.(); navigation.navigate("UserGallery", { userId: item.userId, nickname: item.nickname }); }}
-      >
-        <Text style={styles.galleryBtnText}>🏛️</Text>
-      </TouchableOpacity>
+      <View style={styles.rosterRight}>
+        <Waveform w={30} h={9} color={colors.secondary} sw={1.3} opacity={0.75} />
+        <TouchableOpacity
+          onPress={(e) => { e.stopPropagation?.(); navigation.navigate("UserGallery", { userId: item.userId, nickname: item.nickname }); }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.rosterGalleryTxt}>TA的展柜 ›</Text>
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 
@@ -238,17 +240,14 @@ const styles = StyleSheet.create({
   acceptBtnText: { ...typography.caption, fontWeight: "700", color: "#FFF" },
   rejectBtn: { backgroundColor: colors.surfaceAlt, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full },
   rejectBtnText: { ...typography.caption, fontWeight: "600", color: colors.textSecondary },
-  friendItem: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, marginHorizontal: spacing.md,
-    marginTop: spacing.sm, borderRadius: borderRadius.lg, padding: spacing.md,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 3, elevation: 1,
-  },
-  friendInfo: { flex: 1, marginLeft: spacing.md },
-  friendName: { ...typography.bodyBold, color: colors.textPrimary },
-  friendLastMsg: { ...typography.caption, color: colors.textHint, marginTop: 2 },
-  friendArrow: { ...typography.h3, color: colors.textHint },
-  galleryBtn: { padding: spacing.sm, marginLeft: spacing.xs },
-  galleryBtnText: { fontSize: 24 },
+  // 船员名录（方案 A：无卡片 + 发丝分隔）
+  rosterRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: 12, paddingHorizontal: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.line },
+  rosterInfo: { flex: 1, gap: 3 },
+  rosterName: { fontFamily: HAND, fontSize: 19, color: colors.ink, lineHeight: 22 },
+  rosterId: { fontFamily: BODY, fontSize: 10, color: colors.faded },
+  rosterMsg: { fontFamily: KAI, fontSize: 12.5, color: colors.sub },
+  rosterRight: { alignItems: "flex-end", gap: 5 },
+  rosterGalleryTxt: { fontFamily: BODY, fontSize: 11.5, fontWeight: "700", color: colors.primary },
   emptyList: { flex: 1 },
-  listContent: { paddingBottom: 100 },
+  listContent: { paddingBottom: 100, paddingTop: 2 },
 });
