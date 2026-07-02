@@ -410,8 +410,8 @@ const styles = StyleSheet.create({
   cartoucheRuleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 3 },
   cartoucheRule: { height: 1, width: 26, backgroundColor: colors.accent },
   cartoucheEn: { fontFamily: BODY, fontSize: 9, fontWeight: "700", color: colors.accent, letterSpacing: 3 },
-  headerSub: { ...typography.caption, color: colors.textHint, marginTop: 6, textAlign: "center" },
-  mineRow: { alignItems: "flex-end", paddingHorizontal: spacing.lg, paddingTop: 4, paddingBottom: 2 },
+  headerSub: { ...typography.caption, color: colors.textHint },
+  subRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
   mineLinkText: { fontFamily: BODY, fontSize: 12.5, fontWeight: "700", color: colors.primary },
   searchBar: {
     flexDirection: "row",
@@ -637,16 +637,12 @@ export function ActivitySquareScreen({ navigation }: any) {
             <View style={styles.cartoucheRule} />
           </View>
         </View>
-        {!showMyEvents && (
-          <Text style={styles.headerSub}>{total > 0 ? `共 ${total} 个活动` : ""}</Text>
-        )}
-      </View>
-
-      {/* 我参与的 / 返回 链接（搜索框上方） */}
-      <View style={styles.mineRow}>
-        <TouchableOpacity onPress={() => { const next = !showMyEvents; setShowMyEvents(next); if (next && myEvents.length === 0) fetchMyEvents(); }} activeOpacity={0.7}>
-          <Text style={styles.mineLinkText}>{showMyEvents ? "‹ 活动广场" : "我参与的 ›"}</Text>
-        </TouchableOpacity>
+        <View style={styles.subRow}>
+          <Text style={styles.headerSub}>{!showMyEvents && total > 0 ? `共 ${total} 个活动` : ""}</Text>
+          <TouchableOpacity onPress={() => { const next = !showMyEvents; setShowMyEvents(next); if (next && myEvents.length === 0) fetchMyEvents(); }} activeOpacity={0.7}>
+            <Text style={styles.mineLinkText}>{showMyEvents ? "‹ 活动广场" : "我参与的 ›"}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 搜索栏（仅在广场模式显示） */}
