@@ -60,6 +60,7 @@ function recolorMap(map: any) {
 
 const ICON_WHALEFALL = (require("../../../assets/icons/icon_whalefall.png") as any)?.uri;
 const ICON_BIGWHALEFALL = (require("../../../assets/icons/icon_bigwhalefall.png") as any)?.uri;
+const ICON_NOTE = (require("../../../assets/icons/icon_note.png") as any)?.uri;
 
 // marker DOM 元素（涟漪 + 核心 + 标签），me=蓝色定位点，icon=悬浮图标(鲸落/巨鲸落)
 function mkEl(color: string, tag: string, me?: boolean, icon?: any) {
@@ -191,7 +192,7 @@ export function MapScreen() {
       add(c.coordinates.lat, c.coordinates.lng, a ? colors.accent : colors.gold, a ? "巨鲸落" : "鲸落", () => { setDialogData({ type: a ? "advancedChest" : "normalChest", data: { ...c, label: "#" + (i + 1) } }); setDialogVisible(true); }, a ? ICON_BIGWHALEFALL : ICON_WHALEFALL);
     });
     ev.forEach((e) => { add(e.meetCoordinates.lat, e.meetCoordinates.lng, e.typeId?.color || colors.primary, "同游", () => { setDialogData({ type: "event", data: e }); setDialogVisible(true); }); });
-    nt.forEach((n: any) => { add(n.coordinates.lat, n.coordinates.lng, colors.gold, "纸条", () => { setDialogData({ type: "note", data: n }); setDialogVisible(true); }); });
+    nt.forEach((n: any) => { add(n.coordinates.lat, n.coordinates.lng, colors.gold, "纸条", () => { setDialogData({ type: "note", data: n }); setDialogVisible(true); }, ICON_NOTE); });
   };
 
   const getDist = (a: number, b: number, c: number, d: number) => { const R = 6371000; const dLat = (c-a)*Math.PI/180; const dLng = (d-b)*Math.PI/180; const x = Math.sin(dLat/2)**2 + Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2; return Math.round(R*2*Math.atan2(Math.sqrt(x), Math.sqrt(1-x))); };
