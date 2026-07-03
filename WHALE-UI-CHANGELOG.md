@@ -44,11 +44,12 @@
 - 登录三屏:🏛️/🎉 → WhaleMark;标题手写化;表单扁平化。
 - 全部子页(聊天/详情/日志/反馈/管理后台/选点等):手写标题 + 扁平表头。
 
-## 6. 待接入的 AI 生成图(位图 PNG,用户生成后再接)
-- 好友条目展柜入口(现为文字「TA的展柜 ›」,可换成小图标)。
-- 发布页活动类型图标(吃饭/自习/运动/其它)——**真实 App 支持管理员后台上传 `typeId.iconUrl`,零改代码**。
-- 地图藏品/宝箱 marker(现为文字标签「鲸落/巨鲸落/同游/纸条」,可换 PNG)。
-- 提示词见对话记录 / NEXT-STEPS.md;导出 2–3x 透明底。
+## 6. AI 生成图接入(2026-07-03 已接入)
+图放 `client/assets/icons/`(原图 PIL 压到 ≤180px、50–75KB/张),`<Image source={require(...)}>` 接入:
+- ✅ 好友展柜入口 `icon_gallery.png`——图标(28px)移到波形左侧,「TA的展柜 ›」文字下移。
+- ✅ 地图鲸落 `icon_whalefall.png` / 巨鲸落 `icon_bigwhalefall.png`——marker(`mkEl`)+ 右下角计数 chip 同步换图;计数图标放大 1.5×(27px)、数字 21px、chip 加宽。
+- ⏳ 活动类型(吃饭/自习/运动/其它)——4 图暂存 `client/src/ui_images/`,**走管理员后台上传 `typeId.iconUrl`,零改代码**;如需本地预览可在 `iconUrl` 空时 fallback 本地图(待鳟鱼确认)。
+- 同游 / 纸条 marker 暂无对应 AI 图,继续用 `mkEl` 文字标签。
 
 ## 7. ⚠️ 临时预览脚手架（PR 前必须移除）
 仅为本地免登录看效果,**不可进正式 PR**:
@@ -96,3 +97,15 @@ f=<screen.tsx>; imp=$(grep -m1 'from "../../theme"' "$f")
 for tok in BODY HAND SERIF KAI; do grep -qE "\b$tok\b" <(grep -vE 'from ".*theme"' "$f") && (echo "$imp"|grep -qE "\b$tok\b" || echo "⚠ 缺 $tok"); done
 ```
 条件成熟时用 puppeteer/浏览器实际打开验证渲染(不能只看构建返回 0)。
+
+## 13. 前后端接口核对(2026-07-03,任务 C)
+纯样式重构未破坏接口契约,静态核对通过:
+- `git diff main..HEAD -- client/src/services/` **为空**——所有 endpoint/payload schema 基线保持。
+- 被改屏中数据层调用(`getMyNotes` / `location_update` socket emit / `updateProfile({studentId})`)增删行逐条 -/+ 一致,仅换容器/挪位;两处伴随微调(`fetchMyEvents` 展开时才拉、`updateProfile` 加成功 Alert)等价或纯增益。
+- **坐标专项**:socket 上报仍 `{ lat: gcj.lat, lng: gcj.lng }`(GCJ-02),`gcj02ToWgs84` 只用于显示层画点。
+- ⏳ 动态冒烟(连真后端登录逐条走)需鳟鱼在真环境验。
+
+## 14. 遗留清理项(PR 前)
+- **`loggg.txt`**(仓库根,294 行)——误 commit 进 `4745c95` 的操作日志,建议 `git rm` + 加 `.gitignore`(踩删文件红线,待鳟鱼定)。
+- 临时预览脚手架(见 §7)。
+- 未跟踪原图目录 `client/src/ui_images/`(7 张,~11.7MB)——压缩版已进 `assets/icons/`,原图留否待定。
