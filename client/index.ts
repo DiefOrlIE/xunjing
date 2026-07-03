@@ -28,8 +28,6 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
   }
 }
 
-if (Platform.OS === "web") { require("./src/_mock.web"); } // TEMP-PREVIEW 假数据，验收后删
-
 import { registerRootComponent } from 'expo';
 import App from './App';
 
