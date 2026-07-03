@@ -17,7 +17,7 @@ if (Platform.OS === "web") {
 // 航海志字体（仅 Web 运行时注入 Google Fonts；与 MapScreen 动态插 Leaflet CSS 同款做法）
 if (Platform.OS === "web" && typeof document !== "undefined") {
   const FONT_HREF =
-    "https://fonts.googleapis.com/css2?family=Long+Cang&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap";
+    "https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap";
   if (!document.querySelector("link[data-whale-fonts]")) {
     const pre1 = document.createElement("link"); pre1.rel = "preconnect"; pre1.href = "https://fonts.googleapis.com";
     const pre2 = document.createElement("link"); pre2.rel = "preconnect"; pre2.href = "https://fonts.gstatic.com"; pre2.crossOrigin = "anonymous";
