@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from "react";
 import {
   View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator,
-  RefreshControl, TextInput, ScrollView,
+  RefreshControl, TextInput, ScrollView, Animated, Easing,
 } from "react-native";
 import { colors, typography, spacing, borderRadius, HAND, BODY, SERIF } from "../../theme";
 import { WhaleMark } from "../../theme/whaleKit";
@@ -412,6 +412,14 @@ const styles = StyleSheet.create({
   cartoucheEn: { fontFamily: BODY, fontSize: 9, fontWeight: "700", color: colors.accent, letterSpacing: 3 },
   headerSub: { ...typography.caption, color: colors.textHint },
   subRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
+  segRow: { flexDirection: "row", height: 42, borderRadius: 10, borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.card, overflow: "hidden", position: "relative", marginTop: 9 },
+  segFill: { position: "absolute", top: 0, bottom: 0, left: 0, width: "54%", backgroundColor: colors.primary },
+  segBtn: { flex: 1, alignItems: "center", justifyContent: "center", zIndex: 2 },
+  segTxt: { fontFamily: BODY, fontSize: 14, fontWeight: "700", color: colors.primary },
+  segTxtOn: { color: "#fff" },
+  headerCount: { fontFamily: BODY, fontSize: 12, color: colors.sub, textAlign: "center", marginTop: 7 },
+  floatCount: { position: "absolute", right: 14, bottom: 16, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: colors.line },
+  floatCountTxt: { fontFamily: BODY, fontSize: 11.5, color: colors.sub },
   mineLinkText: { fontFamily: BODY, fontSize: 12.5, fontWeight: "700", color: colors.primary },
   searchBar: {
     flexDirection: "row",
@@ -492,6 +500,9 @@ export function ActivitySquareScreen({ navigation }: any) {
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [showMyEvents, setShowMyEvents] = useState(false);
+  const [segW, setSegW] = useState(0);
+  const segAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => { Animated.timing(segAnim, { toValue: showMyEvents ? 1 : 0, duration: 240, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }, [showMyEvents]);
   const [myEvents, setMyEvents] = useState<any[]>(EMPTY_EVENTS);
   const [myEventsLoading, setMyEventsLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -637,10 +648,13 @@ export function ActivitySquareScreen({ navigation }: any) {
             <View style={styles.cartoucheRule} />
           </View>
         </View>
-        <View style={styles.subRow}>
-          <Text style={styles.headerSub}>{!showMyEvents && total > 0 ? `共 ${total} 个活动` : ""}</Text>
-          <TouchableOpacity onPress={() => { const next = !showMyEvents; setShowMyEvents(next); if (next && myEvents.length === 0) fetchMyEvents(); }} activeOpacity={0.7}>
-            <Text style={styles.mineLinkText}>{showMyEvents ? "‹ 活动广场" : "我参与的 ›"}</Text>
+        <View style={styles.segRow} onLayout={(e) => setSegW(e.nativeEvent.layout.width)}>
+          <Animated.View style={[styles.segFill, { transform: [{ translateX: segAnim.interpolate({ inputRange: [0, 1], outputRange: [-segW * 0.02, segW * 0.48] }) }, { skewX: "-12deg" }] }]} />
+          <TouchableOpacity style={styles.segBtn} onPress={() => setShowMyEvents(false)} activeOpacity={0.85}>
+            <Text style={[styles.segTxt, !showMyEvents && styles.segTxtOn]}>全部同游</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.segBtn} onPress={() => { setShowMyEvents(true); if (myEvents.length === 0) fetchMyEvents(); }} activeOpacity={0.85}>
+            <Text style={[styles.segTxt, showMyEvents && styles.segTxtOn]}>我参与的</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -705,6 +719,11 @@ export function ActivitySquareScreen({ navigation }: any) {
           selectedTypeId={selectedTypeId}
           onNavigatePublish={handleNavigatePublish}
         />
+      )}
+      {!showMyEvents && total > 0 && (
+        <View style={styles.floatCount} pointerEvents="none">
+          <Text style={styles.floatCountTxt}>共 {total} 个同游</Text>
+        </View>
       )}
     </View>
   );

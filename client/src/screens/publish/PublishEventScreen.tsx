@@ -81,7 +81,7 @@ export function PublishEventScreen({ navigation }: any) {
             meetCoordinates: meetCoord,
             description: description.trim(),
           });
-          if (res.success) { Alert.alert("🎉", "招募已发布！请在日志查看"); handleReset(); }
+          if (res.success) { Alert.alert("发布成功", "你的同游已发布！可在活动广场顶部「我参与的」查看和管理。"); handleReset(); }
         } catch (err: any) { Alert.alert("发布失败", err?.error || "请稍后再试"); }
         finally { setSubmitting(false); }
       }},

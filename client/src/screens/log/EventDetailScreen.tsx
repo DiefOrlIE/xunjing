@@ -75,7 +75,7 @@ export function EventDetailScreen({ route, navigation }: any) {
 
   const handleApply = async () => {
     setActionLoading(true);
-    try { await applyToEvent(eventId); fetchDetail(); Alert.alert("已申请", "申请已发送，等待发布者审核"); }
+    try { await applyToEvent(eventId); fetchDetail(); Alert.alert("已申请", "申请已发送，等待发布者审核。可在活动广场顶部「我参与的」查看进度。"); }
     catch (e: any) { Alert.alert("申请失败", e?.error || "操作失败"); }
     finally { setActionLoading(false); }
   };

@@ -26,7 +26,7 @@ const wgs84ToGcj02 = (lat: number, lng: number) => { const dLat = _tLat(lng-105,
 const gcj02ToWgs84 = (lat: number, lng: number) => { const g = wgs84ToGcj02(lat, lng); return { lat: lat * 2 - g.lat, lng: lng * 2 - g.lng }; };
 
 let ML: any = null; // maplibre-gl
-const OCEAN = { land: "#EAF1FA", land2: "#E2EAF4", water: "#2E86C9", green: "#CDE0EF", bldg: "#D3DEEC", bldgO: "#93AECF", road: "#FFFFFF", roadCase: "#7FA8CE", rail: "#A9BCD4", ink: "#1B3A5B", halo: "#FFFFFF", boundary: "#9FB6D0" };
+const OCEAN = { land: "#EDF5FC", land2: "#DEEDF7", water: "#33A6E0", green: "#A9E0CA", bldg: "#DBE8F5", bldgO: "#A6C6E2", road: "#FFFFFF", roadCase: "#8CBCE0", rail: "#B4CBE2", ink: "#123A5A", halo: "#FFFFFF", boundary: "#AAC3DB" };
 
 const loadMapLibre = () => new Promise<any>((resolve) => {
   if (typeof window === "undefined") return resolve(null);
@@ -34,7 +34,7 @@ const loadMapLibre = () => new Promise<any>((resolve) => {
   const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css"; document.head.appendChild(link);
   if (!document.getElementById("whale-mk-css")) {
     const st = document.createElement("style"); st.id = "whale-mk-css";
-    st.textContent = ".wmk{position:relative;width:0;height:0}.wmk .ping{position:absolute;left:0;top:0;width:16px;height:16px;margin:-8px;border-radius:50%;background:var(--c);animation:wping 2.4s ease-out infinite}.wmk .ping.b{animation-delay:1.2s}.wmk .core{position:absolute;left:0;top:0;width:15px;height:15px;margin:-7.5px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}.wmk .tag{position:absolute;left:0;top:11px;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:var(--c);text-shadow:0 1px 2px #fff,0 0 3px #fff}.wmk.me .core{width:19px;height:19px;margin:-9.5px}.wmk.me .halo{position:absolute;left:0;top:0;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(44,130,201,.14);border:1px solid rgba(44,130,201,.35)}.wmk .wicon{position:absolute;left:0;top:0;width:42px;height:42px;margin:-21px;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}@keyframes wping{0%{transform:scale(.5);opacity:.55}100%{transform:scale(3);opacity:0}}.maplibregl-ctrl-bottom-left{bottom:26px}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{margin-left:12px}";
+    st.textContent = ".wmk{position:relative;width:0;height:0}.wmk .ping{position:absolute;left:0;top:0;width:26px;height:26px;margin:-13px;border-radius:50%;background:var(--c);animation:wping 2.6s ease-out infinite}.wmk .ping.b{animation-delay:1.2s}.wmk .core{position:absolute;left:0;top:0;width:15px;height:15px;margin:-7.5px;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}.wmk .tag{position:absolute;left:0;top:11px;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:var(--c);text-shadow:0 1px 2px #fff,0 0 3px #fff}.wmk.me .core{width:19px;height:19px;margin:-9.5px}.wmk.me .halo{position:absolute;left:0;top:0;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(44,130,201,.14);border:1px solid rgba(44,130,201,.35)}.wmk .wicon{position:absolute;left:0;top:0;width:42px;height:42px;margin:-21px;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}@keyframes wping{0%{transform:scale(.35);opacity:.55}100%{transform:scale(3.4);opacity:0}}.maplibregl-ctrl-bottom-left{bottom:26px}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{margin-left:12px}";
     document.head.appendChild(st);
   }
   const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"; s.onload = () => resolve((window as any).maplibregl); s.onerror = () => resolve(null); document.head.appendChild(s);
@@ -65,7 +65,9 @@ const ICON_NOTE = (require("../../../assets/icons/icon_note.png") as any)?.uri;
 // marker DOM 元素（涟漪 + 核心 + 标签），me=蓝色定位点，icon=悬浮图标(鲸落/巨鲸落)
 function mkEl(color: string, tag: string, me?: boolean, icon?: any) {
   const d = document.createElement("div"); d.className = "wmk" + (me ? " me" : ""); (d.style as any).setProperty("--c", color);
-  d.innerHTML = (me ? '<span class="halo"></span>' : "") + '<span class="ping"></span><span class="ping b"></span>'
+  const pc = icon ? "#3FB6BD" : "";
+  const pingHtml = '<span class="ping"' + (pc ? ' style="background:' + pc + '"' : '') + '></span><span class="ping b"' + (pc ? ' style="background:' + pc + '"' : '') + '></span>';
+  d.innerHTML = (me ? '<span class="halo"></span>' : "") + pingHtml
     + (icon ? '<img class="wicon" src="' + icon + '" />' : '<span class="core"></span>')
     + (tag ? '<span class="tag" style="' + (icon ? "top:24px" : "") + '">' + tag + "</span>" : "");
   return d;

@@ -77,7 +77,7 @@ export function FriendListScreen({ navigation }: any) {
       activeOpacity={0.7}
       onPress={() => navigation.navigate("Chat", { friend: { id: item.id, userId: item.userId, nickname: item.nickname, avatar: item.avatar } })}
     >
-      <Avatar uri={item.avatar || undefined} size={46} emoji={item.nickname.charAt(0)} />
+      <Avatar uri={item.avatar || undefined} size={46} emoji={item.nickname.charAt(0)} borderColor={colors.secondary} />
       <View style={styles.rosterInfo}>
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 7 }}>
           <Text style={styles.rosterName}>{item.nickname}</Text>
