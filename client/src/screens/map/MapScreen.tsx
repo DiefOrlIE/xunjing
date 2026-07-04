@@ -25,6 +25,15 @@ const wgs84ToGcj02 = (lat: number, lng: number) => { const dLat = _tLat(lng-105,
 // GCJ-02 → WGS-84（近似反向纠偏，供在 WGS-84 矢量图上显示 GCJ 数据/定位）
 const gcj02ToWgs84 = (lat: number, lng: number) => { const g = wgs84ToGcj02(lat, lng); return { lat: lat * 2 - g.lat, lng: lng * 2 - g.lng }; };
 
+// 浏览器 geolocation 坐标系归一化：iOS/桌面返回 WGS-84；安卓国产 ROM 底层走高德/厂商定位，返回的已是 GCJ-02。
+// 统一产出：gcj = 逻辑/socket/距离用（全站 GCJ-02）；wgs = 画在 WGS-84 矢量底图用。
+const normLoc = (lat: number, lng: number) => {
+  const isAndroid = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+  return isAndroid
+    ? { gcj: { lat, lng }, wgs: gcj02ToWgs84(lat, lng) }
+    : { gcj: wgs84ToGcj02(lat, lng), wgs: { lat, lng } };
+};
+
 let ML: any = null; // maplibre-gl
 const OCEAN = { land: "#EDF5FC", land2: "#DEEDF7", water: "#33A6E0", green: "#A9E0CA", bldg: "#DBE8F5", bldgO: "#A6C6E2", road: "#FFFFFF", roadCase: "#8CBCE0", rail: "#B4CBE2", ink: "#123A5A", halo: "#FFFFFF", boundary: "#AAC3DB" };
 
@@ -64,9 +73,9 @@ const ICON_BIGWHALEFALL = require("../../../assets/icons/icon_bigwhalefall.png")
 const ICON_NOTE = require("../../../assets/icons/icon_note.png") as string;
 
 // marker DOM 元素（涟漪 + 核心 + 标签），me=蓝色定位点，icon=悬浮图标(鲸落/巨鲸落)
-function mkEl(color: string, tag: string, me?: boolean, icon?: any) {
+function mkEl(color: string, tag: string, me?: boolean, icon?: any, pingColor?: string) {
   const d = document.createElement("div"); d.className = "wmk" + (me ? " me" : ""); (d.style as any).setProperty("--c", color);
-  const pc = icon ? "#3FB6BD" : "";
+  const pc = icon ? (pingColor || "#3FB6BD") : "";
   const pingHtml = '<span class="ping"' + (pc ? ' style="background:' + pc + '"' : '') + '></span><span class="ping b"' + (pc ? ' style="background:' + pc + '"' : '') + '></span>';
   d.innerHTML = (me ? '<span class="halo"></span>' : "") + pingHtml
     + (icon ? '<img class="wicon" src="' + icon + '" />' : '<span class="core"></span>')
@@ -138,14 +147,14 @@ export function MapScreen() {
     let first = true; let dead = false; let watchId = 0;
 
     const updatePos = (lat: number, lng: number) => {
-      // lat,lng = 浏览器原始 WGS-84。显示用 WGS；逻辑/socket/距离用 GCJ-02（不动）
-      const gcj = wgs84ToGcj02(lat, lng);
+      // gcj = 逻辑/socket/距离用；wgs = 画在底图用（安卓返回 GCJ 时会做转换，iOS 保持原样）
+      const { gcj, wgs } = normLoc(lat, lng);
       setGpsLabel(`${gcj.lat.toFixed(6)}, ${gcj.lng.toFixed(6)}`); setUserLocation(gcj);
       if (mapRef.current && ML) {
         if (userMarkerRef.current) userMarkerRef.current.remove();
-        userMarkerRef.current = new ML.Marker({ element: mkEl(colors.primary, "你在这", true), anchor: "center" }).setLngLat([lng, lat]).addTo(mapRef.current);
+        userMarkerRef.current = new ML.Marker({ element: mkEl(colors.primary, "你在这", true), anchor: "center" }).setLngLat([wgs.lng, wgs.lat]).addTo(mapRef.current);
         // 首次定位成功后自动归中一次（之后不再自动移动，避免和手动拖动打架）
-        if (!didCenterRef.current) { didCenterRef.current = true; try { mapRef.current.flyTo({ center: [lng, lat], zoom: 16 }); } catch (e) {} }
+        if (!didCenterRef.current) { didCenterRef.current = true; try { mapRef.current.flyTo({ center: [wgs.lng, wgs.lat], zoom: 16 }); } catch (e) {} }
       }
       const s = getCurrentSocket(); if (s?.connected) s.emit("location_update", { lat: gcj.lat, lng: gcj.lng, campus });
     };
@@ -184,15 +193,15 @@ export function MapScreen() {
   const updateMarkers = (ch: any[], ev: any[], nt: any[] = []) => {
     if (!mapRef.current || !ML) return;
     (markersRef.current || []).forEach((m: any) => m.remove()); markersRef.current = [];
-    const add = (latGcj: number, lngGcj: number, color: string, tag: string, onClick: () => void, icon?: string) => {
+    const add = (latGcj: number, lngGcj: number, color: string, tag: string, onClick: () => void, icon?: string, pingColor?: string) => {
       const w = gcj02ToWgs84(latGcj, lngGcj);
-      const el = mkEl(color, tag, false, icon); el.style.cursor = "pointer";
+      const el = mkEl(color, tag, false, icon, pingColor); el.style.cursor = "pointer";
       el.addEventListener("click", (ev2) => { ev2.stopPropagation(); onClick(); });
       const m = new ML.Marker({ element: el, anchor: "center" }).setLngLat([w.lng, w.lat]).addTo(mapRef.current);
       markersRef.current.push(m);
     };
     ch.forEach((c, i) => { const a = c.type === "advanced";
-      add(c.coordinates.lat, c.coordinates.lng, a ? colors.accent : colors.gold, a ? "巨鲸落" : "鲸落", () => { setDialogData({ type: a ? "advancedChest" : "normalChest", data: { ...c, label: "#" + (i + 1) } }); setDialogVisible(true); }, a ? ICON_BIGWHALEFALL : ICON_WHALEFALL);
+      add(c.coordinates.lat, c.coordinates.lng, a ? colors.accent : colors.gold, a ? "巨鲸落" : "鲸落", () => { setDialogData({ type: a ? "advancedChest" : "normalChest", data: { ...c, label: "#" + (i + 1) } }); setDialogVisible(true); }, a ? ICON_BIGWHALEFALL : ICON_WHALEFALL, a ? "#F5943C" : undefined);
     });
     ev.forEach((e) => { add(e.meetCoordinates.lat, e.meetCoordinates.lng, e.typeId?.color || colors.primary, "同游", () => { setDialogData({ type: "event", data: e }); setDialogVisible(true); }); });
     nt.forEach((n: any) => { add(n.coordinates.lat, n.coordinates.lng, colors.gold, "纸条", () => { setDialogData({ type: "note", data: n }); setDialogVisible(true); }, ICON_NOTE); });
@@ -209,12 +218,12 @@ export function MapScreen() {
     if (!navigator?.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const gcj = wgs84ToGcj02(pos.coords.latitude, pos.coords.longitude);
+        const { gcj, wgs } = normLoc(pos.coords.latitude, pos.coords.longitude);
         setGpsLabel(`${gcj.lat.toFixed(6)}, ${gcj.lng.toFixed(6)}`); setUserLocation(gcj);
         if (mapRef.current && ML) {
           if (userMarkerRef.current) userMarkerRef.current.remove();
-          userMarkerRef.current = new ML.Marker({ element: mkEl(colors.primary, "你在这", true), anchor: "center" }).setLngLat([pos.coords.longitude, pos.coords.latitude]).addTo(mapRef.current);
-          mapRef.current.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: Math.max(mapRef.current.getZoom(), 16) });
+          userMarkerRef.current = new ML.Marker({ element: mkEl(colors.primary, "你在这", true), anchor: "center" }).setLngLat([wgs.lng, wgs.lat]).addTo(mapRef.current);
+          mapRef.current.flyTo({ center: [wgs.lng, wgs.lat], zoom: Math.max(mapRef.current.getZoom(), 16) });
         }
         const s = getCurrentSocket(); if (s?.connected) s.emit("location_update", { lat: gcj.lat, lng: gcj.lng, campus });
       },
