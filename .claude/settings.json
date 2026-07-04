@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scp server/src/index.ts server/src/config/constants.ts ubuntu@124.222.230.80:/home/ubuntu/server/src/)",
+      "Bash(scp server/src/config/constants.ts ubuntu@124.222.230.80:/home/ubuntu/server/src/config/)",
+      "Bash(scp server/src/controllers/admin.controller.ts server/src/controllers/event.controller.ts server/src/controllers/item.controller.ts server/src/controllers/user.controller.ts ubuntu@124.222.230.80:/home/ubuntu/server/src/controllers/)",
+      "Bash(scp server/src/routes/admin.routes.ts server/src/routes/item.routes.ts ubuntu@124.222.230.80:/home/ubuntu/server/src/routes/)",
+      "Bash(ssh ubuntu@124.222.230.80 \"echo 'Wyx82308257' | sudo -S cp -r /tmp/seekwhale-web/* /var/www/seekwhale/ && sudo chmod -R 755 /var/www/seekwhale\")",
+      "Bash(ssh ubuntu@124.222.230.80 \"ls -la /var/www/seekwhale/app-release.apk 2>/dev/null || echo 'APK MISSING FROM WEB ROOT'; ls -la /tmp/app-release.apk 2>/dev/null || echo 'NOT IN /tmp EITHER'\")",
+      "Bash(ssh ubuntu@124.222.230.80 \"echo 'Wyx82308257' | sudo -S cp /tmp/app-release.apk /var/www/seekwhale/ && sudo chmod 644 /var/www/seekwhale/app-release.apk && ls -la /var/www/seekwhale/app-release.apk\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://seekwhale.cn/)",
+      "Bash(curl -s http://124.222.230.80:3000/api/version)",
+      "Bash(ssh ubuntu@124.222.230.80 \"ls -la /var/www/seekwhale/_expo/static/js/web/ && ls -la /var/www/seekwhale/assets/icons/\")",
+      "Bash(ssh ubuntu@124.222.230.80 \"find /var/www/seekwhale -name '*.png' -o -name 'icon_*' 2>/dev/null | head -20\")",
+      "Bash(curl -s https://seekwhale.cn/)",
+      "Bash(ssh ubuntu@124.222.230.80 \"grep -o 'icon_bigwhalefall[^\\\\\"]*' /var/www/seekwhale/_expo/static/js/web/index-*.js | head -5\")",
+      "Bash(ssh ubuntu@124.222.230.80 \"echo 'Wyx82308257' | sudo -S rm -rf /var/www/seekwhale /tmp/seekwhale-web && sudo mkdir -p /var/www/seekwhale\")",
+      "Bash(ssh ubuntu@124.222.230.80 \"echo 'Wyx82308257' | sudo -S cp -r /tmp/seekwhale-web/* /var/www/seekwhale/ && sudo chmod -R 755 /var/www/seekwhale && sudo cp /tmp/app-release.apk /var/www/seekwhale/ && sudo chmod 644 /var/www/seekwhale/app-release.apk && echo 'web deployed'\")",
+      "Bash(ssh ubuntu@124.222.230.80 \"echo 'Wyx82308257' | sudo -S cp -r /tmp/seekwhale-web/* /var/www/seekwhale/ && sudo chmod -R 755 /var/www/seekwhale && sudo cp /tmp/app-release.apk /var/www/seekwhale/ && sudo chmod 644 /var/www/seekwhale/app-release.apk && ls /var/www/seekwhale/index.html\")",
+      "Bash(ssh ubuntu@124.222.230.80 \"echo 'Wyx82308257' | sudo -S cp -r /tmp/seekwhale-web/* /var/www/seekwhale/ && sudo chmod -R 755 /var/www/seekwhale && sudo cp /tmp/app-release.apk /var/www/seekwhale/ && sudo chmod 644 /var/www/seekwhale/app-release.apk\")",
+      "Bash(scp server/src/controllers/*.ts ubuntu@124.222.230.80:/home/ubuntu/server/src/controllers/)",
+      "Bash(scp server/src/routes/*.ts ubuntu@124.222.230.80:/home/ubuntu/server/src/routes/)",
+      "Bash(ssh ubuntu@124.222.230.80 \"echo 'Wyx82308257' | sudo -S cp -r /tmp/seekwhale-web/* /var/www/seekwhale/ && sudo chmod -R 755 /var/www/seekwhale && sudo cp /tmp/app-release.apk /var/www/seekwhale/ && sudo chmod 644 /var/www/seekwhale/app-release.apk && echo 'web ok'\")",
+      "Bash(python3 -c \"from PIL import Image; print\\('Pillow OK'\\)\")",
+      "Bash(python -c \"from PIL import Image; print\\('Pillow OK'\\)\")",
+      "Bash(python3 -c ' *)",
+      "Read(//c/Users/Lenovo/AppData/Local/Programs/Python/Python313/**)",
+      "Read(//c/Python313/**)",
+      "Read(//c/Users/Lenovo/**)",
+      "Bash(/c/Users/Lenovo/AppData/Local/Programs/Python/Python313/python.exe -c ' *)",
+      "Bash(/c/Users/Lenovo/AppData/Local/Programs/Python/Python313/python.exe)",
+      "Bash(scp -r \"c:/Users/Lenovo/Desktop/xunjing/client/dist/\"* ubuntu@124.222.230.80:/tmp/seekwhale-web/)",
+      "Bash(curl -s http://124.222.230.80:3000/api/health)",
+      "Bash(ssh ubuntu@124.222.230.80 \"echo 'Wyx82308257' | sudo -S cp -r /tmp/seekwhale-web/* /var/www/seekwhale/ && sudo chmod -R 755 /var/www/seekwhale && sudo cp /tmp/app-release.apk /var/www/seekwhale/ && sudo chmod 644 /var/www/seekwhale/app-release.apk && echo DEPLOYED\")"
+    ]
+  }
+}

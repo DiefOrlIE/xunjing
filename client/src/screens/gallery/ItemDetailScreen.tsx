@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Animated } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, Platform } from "react-native";
 import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { RarityBadge } from "../../components/RarityBadge";
 import { RARITY_COLORS } from "../../utils/constants";
 import { fixImageUrl } from "../../services/api";
+import { deleteCollectionItem } from "../../services/collection.api";
 
 export function ItemDetailScreen({ route, navigation }: any) {
   const { item } = route.params;
@@ -12,8 +13,37 @@ export function ItemDetailScreen({ route, navigation }: any) {
 
   // 渐进加载：先展示缩略图（秒开），原图加载完成后切换
   const [fullLoaded, setFullLoaded] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const thumbUri = item.thumbnailUrl ? fixImageUrl(item.thumbnailUrl) : null;
   const fullUri = item.imageUrl ? fixImageUrl(item.imageUrl) : null;
+
+  const handleDelete = () => {
+    const doDelete = async () => {
+      setDeleting(true);
+      try {
+        const itemId = item.itemId || item._id;
+        const res = await deleteCollectionItem(itemId);
+        if (res.success) {
+          navigation.goBack();
+        } else {
+          Alert.alert("删除失败", (res as any).error || "操作失败");
+        }
+      } catch (e: any) {
+        Alert.alert("删除失败", e?.message || e?.error || "网络错误");
+      } finally {
+        setDeleting(false);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm("确认删除该藏品？")) doDelete();
+    } else {
+      Alert.alert("确认删除该藏品？", "", [
+        { text: "取消", style: "cancel" },
+        { text: "确定", onPress: doDelete },
+      ]);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -74,6 +104,16 @@ export function ItemDetailScreen({ route, navigation }: any) {
             <Text style={styles.descEmpty}>暂无描述</Text>
           </View>
         )}
+
+        {/* 删除藏品 */}
+        <TouchableOpacity
+          style={[styles.deleteBtn, deleting && { opacity: 0.5 }]}
+          onPress={handleDelete}
+          disabled={deleting}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.deleteText}>{deleting ? "删除中..." : "🗑 删除藏品"}</Text>
+        </TouchableOpacity>
 
         {/* 获得时间 */}
         <Text style={styles.acquiredTime}>
@@ -166,5 +206,16 @@ const styles = StyleSheet.create({
   descTitle: { ...typography.bodyBold, color: colors.textPrimary, marginBottom: spacing.md },
   descText: { ...typography.body, color: colors.textSecondary, lineHeight: 24 },
   descEmpty: { ...typography.body, color: colors.textHint, fontStyle: "italic" },
+  deleteBtn: {
+    alignSelf: "center",
+    backgroundColor: "#FFF",
+    borderWidth: 1.5,
+    borderColor: "#E74C3C",
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xxl,
+    marginTop: spacing.xl,
+  },
+  deleteText: { ...typography.bodyBold, color: "#E74C3C", textAlign: "center" },
   acquiredTime: { ...typography.caption, color: colors.textHint, textAlign: "center", marginTop: spacing.sm },
 });

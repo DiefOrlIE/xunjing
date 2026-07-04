@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Alert, ActivityIndicator, RefreshControl, Modal, TextInput, Platform,
@@ -35,9 +36,11 @@ export function ProfileScreen({ navigation }: any) {
     } catch {}
   }, []);
 
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchStats();
+    }, [fetchStats])
+  );
 
   const handleChangeAvatar = async () => {
     if (Platform.OS === "web") {

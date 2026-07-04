@@ -30,7 +30,7 @@ import adminRoutes from "./routes/admin.routes";
 import uploadRoutes from "./routes/upload.routes";
 import geoRoutes from "./routes/geo.routes";
 import feedbackRoutes from "./routes/feedback.routes";
-import { getUserCollections } from "./controllers/item.controller";
+import { getUserCollections, deleteUserCollection } from "./controllers/item.controller";
 import { authMiddleware } from "./middleware/auth.middleware";
 
 const app = express();
@@ -79,6 +79,7 @@ app.use("/api/v1/auth", authRoutes);
 
 // 用户藏品路由必须在 /user 之前注册（避免 /:userId 拦截）
 app.get("/api/v1/user/collections", authMiddleware, getUserCollections);
+app.delete("/api/v1/user/collections/:itemId", authMiddleware, deleteUserCollection);
 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/items", itemRoutes);

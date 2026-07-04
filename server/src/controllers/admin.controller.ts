@@ -97,9 +97,11 @@ export async function updateCampusBounds(req: AuthRequest, res: Response): Promi
 
 export async function giftItem(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { userId, itemId } = req.body;
-    if (!userId || !itemId) {
-      res.status(400).json({ success: false, error: "缺少参数：需要 userId 和 itemId" }); return;
+    const { userId, itemId, itemIds } = req.body;
+    // 兼容旧版单itemId和新版itemIds数组
+    const ids: string[] = itemIds || (itemId ? [itemId] : []);
+    if (!userId || ids.length === 0) {
+      res.status(400).json({ success: false, error: "缺少参数：需要 userId 和 itemId/itemIds" }); return;
     }
 
     // 通过数字ID查找用户
@@ -108,30 +110,34 @@ export async function giftItem(req: AuthRequest, res: Response): Promise<void> {
       res.status(404).json({ success: false, error: `未找到用户ID: ${userId}` }); return;
     }
 
-    // 查找藏品（包括已停用的）
-    const item = await Item.findById(itemId);
-    if (!item) {
+    // 查找所有藏品（包括已停用的）
+    const items = await Item.find({ _id: { $in: ids } });
+    if (items.length === 0) {
       res.status(404).json({ success: false, error: "藏品不存在" }); return;
     }
 
-    // 添加/更新用户藏品
-    await UserCollection.findOneAndUpdate(
-      { userId: user._id, itemId: item._id },
-      {
-        $inc: { count: 1 },
-        $set: { lastAcquiredAt: new Date() },
-        $setOnInsert: { acquiredAt: new Date() },
+    // 批量添加藏品
+    const bulkOps = items.map((item) => ({
+      updateOne: {
+        filter: { userId: user._id, itemId: item._id },
+        update: {
+          $inc: { count: 1 },
+          $set: { lastAcquiredAt: new Date() },
+          $setOnInsert: { acquiredAt: new Date() },
+        },
+        upsert: true,
       },
-      { upsert: true, new: true }
-    );
+    }));
+    await UserCollection.bulkWrite(bulkOps);
 
     // 更新用户统计
     await User.findByIdAndUpdate(user._id, {
-      $inc: { "stats.totalCollections": 1 },
+      $inc: { "stats.totalCollections": items.length },
     });
 
-    logger.info(`[管理员] 赠送给用户 ${userId} (${user.nickname}) 藏品: ${item.name} (${item.rarity})`);
-    res.json({ success: true, message: `已赠送给 ${user.nickname}：${item.name}（${item.rarity}）` });
+    const names = items.map((i) => `${i.name}(${i.rarity})`).join("、");
+    logger.info(`[管理员] 赠送给用户 ${userId} (${user.nickname}) 藏品×${items.length}: ${names}`);
+    res.json({ success: true, message: `已赠送给 ${user.nickname} ${items.length} 件藏品：${names}` });
   } catch (error: any) { res.status(500).json({ success: false, error: error.message }); }
 }
 
@@ -195,5 +201,21 @@ export async function updateDropConfig(req: AuthRequest, res: Response): Promise
     await DropConfig.findOneAndUpdate({ chestType }, { chestType, weights }, { upsert: true, new: true });
     logger.info("[管理员] 更新爆率配置: " + chestType);
     res.json({ success: true, message: "爆率配置已更新" });
+  } catch (error: any) { res.status(500).json({ success: false, error: error.message }); }
+}
+
+/** 通过数字用户ID查询藏品持有量（供管理后台赠送使用） */
+export async function getUserItemCounts(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const userId = parseInt(req.params.userId);
+    if (isNaN(userId)) { res.status(400).json({ success: false, error: "无效的用户ID" }); return; }
+    const user = await User.findOne({ userId });
+    if (!user) { res.status(404).json({ success: false, error: "用户不存在" }); return; }
+    const collections = await UserCollection.find({ userId: user._id, count: { $gt: 0 } });
+    const counts: Record<string, number> = {};
+    for (const c of collections) {
+      counts[c.itemId.toString()] = (counts[c.itemId.toString()] || 0) + c.count;
+    }
+    res.json({ success: true, data: counts });
   } catch (error: any) { res.status(500).json({ success: false, error: error.message }); }
 }

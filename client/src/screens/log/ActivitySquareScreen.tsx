@@ -222,7 +222,7 @@ const ScrollableChips = memo(function ScrollableChips({
 });
 
 // ═══════════════════════════════════════════════════════════
-//  MyEventsView — "我参与的"双区域视图（活跃 + 历史）
+//  MyEventsView — "我参与的"三区域视图（待通过 + 正在参与 + 历史记录）
 // ═══════════════════════════════════════════════════════════
 const myViewStyles = StyleSheet.create({
   scrollContent: { paddingBottom: 100 },
@@ -294,28 +294,33 @@ const MyEventsView = memo(function MyEventsView({
   onPressEvent: (id: string) => void;
   onNavigatePublish: () => void;
 }) {
-  // 拆分：正在参与 = 未结束的活动（recruiting/waiting/ongoing）
+  // 三组：待通过（已申请未通过）、正在参与（已通过且未结束）、历史记录（已结束/已取消）
+  const pendingEvents = events.filter((e: any) => e.myStatus === "applied");
   const activeEvents = events.filter(
-    (e: any) => e.status !== "finished" && e.status !== "cancelled"
+    (e: any) => e.status !== "finished" && e.status !== "cancelled" && e.myStatus !== "applied"
   );
   const historyEvents = events.filter(
     (e: any) => e.status === "finished" || e.status === "cancelled"
   );
 
-  const renderCard = (item: any, isActive: boolean) => {
+  const renderCard = (item: any, variant: "active" | "pending" | "history") => {
     const typeInfo = item.typeId || {};
     const typeColor = typeInfo.color || colors.primary;
     const stamp = STATUS_STAMP[item.status] || colors.textHint;
-    const stampText = STATUS_TEXT[item.status] || item.status;
+    const stampText = variant === "pending" ? "待通过" : (STATUS_TEXT[item.status] || item.status);
+    const stampColor = variant === "pending" ? colors.warning : stamp;
+    const stripBg = variant === "active" ? typeColor : variant === "pending" ? colors.warning : colors.faded;
+    const stripLabel = variant === "active" ? "BOARDING" : variant === "pending" ? "PENDING" : "ARCHIVE";
+    const cardOpacity = variant === "pending" ? 0.65 : variant === "history" ? 0.6 : 1;
     return (
       <TouchableOpacity
         key={item._id}
-        style={[eventStyles.card, { marginHorizontal: spacing.md }, !isActive && { opacity: 0.6 }]}
+        style={[eventStyles.card, { marginHorizontal: spacing.md, opacity: cardOpacity }]}
         onPress={() => onPressEvent(item._id)}
         activeOpacity={0.85}
       >
-        <View style={[eventStyles.boardingStrip, { backgroundColor: isActive ? typeColor : colors.faded }]}>
-          <Text style={eventStyles.boardingText}>{isActive ? "BOARDING" : "ARCHIVE"}</Text>
+        <View style={[eventStyles.boardingStrip, { backgroundColor: stripBg }]}>
+          <Text style={eventStyles.boardingText}>{stripLabel}</Text>
         </View>
         <View style={eventStyles.cardBody}>
           <Text style={eventStyles.noLine}>NO. {String(item._id || "").slice(-4).toUpperCase()} · {typeInfo.name || "活动"} · 同游</Text>
@@ -329,8 +334,8 @@ const MyEventsView = memo(function MyEventsView({
               month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"
             }) : "待定"}
           </Text>
-          <View style={[eventStyles.stamp, { borderColor: stamp }]}>
-            <Text style={[eventStyles.stampText, { color: stamp }]}>{stampText}</Text>
+          <View style={[eventStyles.stamp, { borderColor: stampColor }]}>
+            <Text style={[eventStyles.stampText, { color: stampColor }]}>{stampText}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -363,29 +368,42 @@ const MyEventsView = memo(function MyEventsView({
       contentContainerStyle={myViewStyles.scrollContent}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
     >
+      {/* ── 待通过 ── */}
+      {pendingEvents.length > 0 && (
+        <>
+          <View style={myViewStyles.sectionHeader}>
+            <Text style={myViewStyles.sectionEmoji}>⏳</Text>
+            <Text style={myViewStyles.sectionTitle}>待通过</Text>
+            <Text style={myViewStyles.sectionCount}>{pendingEvents.length} 个</Text>
+          </View>
+          <View style={[myViewStyles.sectionBar, { backgroundColor: colors.warning }]} />
+          {pendingEvents.map((e: any) => renderCard(e, "pending"))}
+        </>
+      )}
+
       {/* ── 正在参与 ── */}
       {activeEvents.length > 0 && (
         <>
-          <View style={myViewStyles.sectionHeader}>
+          <View style={[myViewStyles.sectionHeader, pendingEvents.length === 0 ? {} : { paddingTop: spacing.lg }]}>
             <Text style={myViewStyles.sectionEmoji}>🔥</Text>
             <Text style={myViewStyles.sectionTitle}>正在参与</Text>
             <Text style={myViewStyles.sectionCount}>{activeEvents.length} 个</Text>
           </View>
           <View style={[myViewStyles.sectionBar, { backgroundColor: colors.success }]} />
-          {activeEvents.map((e: any) => renderCard(e, true))}
+          {activeEvents.map((e: any) => renderCard(e, "active"))}
         </>
       )}
 
       {/* ── 历史记录 ── */}
       {historyEvents.length > 0 && (
         <>
-          <View style={[myViewStyles.sectionHeader, activeEvents.length === 0 && { paddingTop: spacing.md }]}>
+          <View style={[myViewStyles.sectionHeader, (pendingEvents.length === 0 && activeEvents.length === 0) ? {} : { paddingTop: spacing.lg }]}>
             <Text style={myViewStyles.sectionEmoji}>📋</Text>
             <Text style={myViewStyles.sectionTitle}>历史记录</Text>
             <Text style={myViewStyles.sectionCount}>{historyEvents.length} 个</Text>
           </View>
           <View style={[myViewStyles.sectionBar, { backgroundColor: colors.divider }]} />
-          {historyEvents.map((e: any) => renderCard(e, false))}
+          {historyEvents.map((e: any) => renderCard(e, "history"))}
         </>
       )}
     </ScrollView>
@@ -653,7 +671,7 @@ export function ActivitySquareScreen({ navigation }: any) {
           <TouchableOpacity style={styles.segBtn} onPress={() => setShowMyEvents(false)} activeOpacity={0.85}>
             <Text style={[styles.segTxt, !showMyEvents && styles.segTxtOn]}>全部同游</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.segBtn} onPress={() => { setShowMyEvents(true); if (myEvents.length === 0) fetchMyEvents(); }} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.segBtn} onPress={() => { setShowMyEvents(true); fetchMyEvents(); }} activeOpacity={0.85}>
             <Text style={[styles.segTxt, showMyEvents && styles.segTxtOn]}>我参与的</Text>
           </TouchableOpacity>
         </View>

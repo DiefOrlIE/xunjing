@@ -82,10 +82,14 @@ export async function getStats(req: AuthRequest, res: Response): Promise<void> {
       return;
     }
 
+    // 从 UserCollection 实时计算藏品总数，确保与展柜一致
+    const collections = await UserCollection.find({ userId, count: { $gt: 0 } });
+    const totalCollections = collections.reduce((sum, c) => sum + c.count, 0);
+
     res.json({
       success: true,
       data: {
-        totalCollections: user.stats.totalCollections,
+        totalCollections,
         hostedEvents: user.stats.hostedEvents,
         participatedEvents: user.stats.participatedEvents,
       },

@@ -2,8 +2,8 @@ import api from "./api";
 import { ApiResponse, ItemDetail, EventTypeData } from "../types";
 
 // ── 藏品管理 ──
-export async function listItems(page = 1, limit = 20, rarity?: string): Promise<ApiResponse<{ items: ItemDetail[]; total: number }>> {
-  return api.get("/items", { params: { page, limit, rarity } });
+export async function listItems(page = 1, limit = 100, rarity?: string, keyword?: string, includeInactive?: boolean): Promise<ApiResponse<{ items: ItemDetail[]; total: number }>> {
+  return api.get("/items", { params: { page, limit, rarity, keyword, includeInactive } });
 }
 
 export async function createItem(data: { name: string; description: string; rarity: string; imageUrl: string; dropWeight: number }): Promise<ApiResponse<ItemDetail>> {
@@ -16,6 +16,14 @@ export async function updateItem(id: string, data: Partial<ItemDetail>): Promise
 
 export async function deleteItem(id: string): Promise<ApiResponse> {
   return api.delete(`/items/${id}`);
+}
+
+export async function reactivateItem(id: string): Promise<ApiResponse> {
+  return api.put(`/items/${id}/reactivate`);
+}
+
+export async function permanentlyDeleteItem(id: string): Promise<ApiResponse> {
+  return api.delete(`/items/${id}/permanent`);
 }
 
 // ── 活动类型管理 ──
@@ -41,6 +49,10 @@ export async function getDashboard(): Promise<ApiResponse<{ totalUsers: number; 
 }
 
 // ── 赠送藏品 ──
-export async function giftItem(userId: number, itemId: string): Promise<ApiResponse> {
-  return api.post("/admin/gift-item", { userId, itemId });
+export async function giftItem(userId: number, itemIds: string[]): Promise<ApiResponse> {
+  return api.post("/admin/gift-item", { userId, itemIds });
+}
+
+export async function getUserItemCounts(userId: number): Promise<ApiResponse<Record<string, number>>> {
+  return api.get(`/admin/user-collections/${userId}`);
 }

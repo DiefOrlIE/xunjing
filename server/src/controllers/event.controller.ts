@@ -2,6 +2,7 @@ import { Response } from "express";
 import { AuthRequest } from "../types";
 import { Event } from "../models/Event";
 import { EventParticipant } from "../models/EventParticipant";
+import { Notification } from "../models/Notification";
 import { User } from "../models/User";
 import { ActivityStatus, ParticipantStatus, NotificationType } from "../config/constants";
 import { canTransitionActivity, canTransitionParticipant } from "../services/status.service";
@@ -118,17 +119,23 @@ export async function createEvent(req: AuthRequest, res: Response): Promise<void
 export async function getMyEvents(req: AuthRequest, res: Response): Promise<void> {
   try {
     const userId = req.user!.userId;
-    const participants = await EventParticipant.find({ userId })
+    const participants = await EventParticipant.find({
+      userId,
+      status: { $nin: [ParticipantStatus.EXITED, ParticipantStatus.REJECTED] },
+    })
       .populate({ path: "eventId", populate: { path: "typeId" } })
-      .sort({ appliedAt: -1 });
+      .sort({ appliedAt: -1 })
+      .lean();
 
     // 过滤已删除的活动（populate 返回 null），展开 event 并附带参与信息
     const events = participants
       .filter((p) => p.eventId != null)
       .map((p) => {
         const eventObj = p.eventId as any;
+        // lean() 返回的是 POJO，直接展开；非 lean 的 Mongoose 文档用 _doc
+        const base = eventObj._doc || eventObj;
         return {
-          ...(eventObj._doc || eventObj),
+          ...base,
           myRole: p.role,
           myStatus: p.status,
         };
@@ -198,19 +205,37 @@ export async function applyToEvent(req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    // 检查是否已申请
-    const existing = await EventParticipant.findOne({ eventId, userId });
+    // 检查是否已申请（排除已退出/被拒绝的记录，允许重新申请）
+    const existing = await EventParticipant.findOne({
+      eventId,
+      userId,
+      status: { $nin: [ParticipantStatus.EXITED, ParticipantStatus.REJECTED] },
+    });
     if (existing) {
       res.status(400).json({ success: false, error: "你已申请过该活动" });
       return;
     }
 
-    await EventParticipant.create({
+    // 复用已退出/被拒绝的旧记录，或创建新记录（避免唯一索引冲突）
+    const exited = await EventParticipant.findOne({
       eventId,
       userId,
-      role: "participant",
-      status: ParticipantStatus.APPLIED,
+      status: { $in: [ParticipantStatus.EXITED, ParticipantStatus.REJECTED] },
     });
+    if (exited) {
+      exited.status = ParticipantStatus.APPLIED;
+      exited.appliedAt = new Date();
+      exited.respondedAt = null;
+      exited.exitedAt = null;
+      await exited.save();
+    } else {
+      await EventParticipant.create({
+        eventId,
+        userId,
+        role: "participant",
+        status: ParticipantStatus.APPLIED,
+      });
+    }
 
     // 通知发布者
     await createNotification({
@@ -336,13 +361,31 @@ export async function exitEvent(req: AuthRequest, res: Response): Promise<void> 
       return;
     }
 
+    const wasApplied = participant.status === ParticipantStatus.APPLIED;
+    const wasAccepted = participant.status === ParticipantStatus.ACCEPTED;
+
     participant.status = ParticipantStatus.EXITED;
     participant.exitedAt = new Date();
     await participant.save();
 
-    // 减少活动参与人数和用户统计
-    await Event.findByIdAndUpdate(req.params.id, { $inc: { currentParticipants: -1 } });
-    await User.findByIdAndUpdate(req.user!.userId, { $inc: { "stats.participatedEvents": -1 } });
+    // 如果是取消申请（申请阶段退出），删除发给发布者的申请通知
+    if (wasApplied) {
+      const event = await Event.findById(req.params.id).select("hostId");
+      if (event) {
+        await Notification.deleteOne({
+          userId: event.hostId,
+          type: NotificationType.EVENT_APPLICATION,
+          referenceId: req.params.id,
+          body: { $regex: new RegExp(req.user!.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") },
+        });
+      }
+    }
+
+    // 仅从"已接受"退出时才需要减少人数和统计（申请阶段未增加过）
+    if (wasAccepted) {
+      await Event.findByIdAndUpdate(req.params.id, { $inc: { currentParticipants: -1 } });
+      await User.findByIdAndUpdate(req.user!.userId, { $inc: { "stats.participatedEvents": -1 } });
+    }
 
     // 从群聊移除
     const redis = getRedis();

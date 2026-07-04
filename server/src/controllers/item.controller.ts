@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { AuthRequest } from "../types";
 import { Item } from "../models/Item";
+import { User } from "../models/User";
 import { UserCollection } from "../models/UserCollection";
 import { Rarity, RARITY_ORDER } from "../config/constants";
 import mongoose from "mongoose";
@@ -18,13 +19,21 @@ function getThumbnailUrl(imageUrl: string): string {
 
 /**
  * GET /api/v1/items
- * [管理员] 获取全部藏品列表
+ * [管理员] 获取全部藏品列表（支持关键词搜索、稀有度筛选、含已停用）
  */
 export async function listItems(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { page = "1", limit = "20", rarity } = req.query;
+    const { page = "1", limit = "20", rarity, keyword, includeInactive } = req.query;
     const filter: any = {};
     if (rarity) filter.rarity = rarity;
+    // 默认只返回活跃藏品，传 includeInactive=true 时包含已停用
+    if (!includeInactive || includeInactive !== "true") {
+      filter.isActive = { $ne: false };
+    }
+    if (keyword) {
+      // 仅按藏品名称检索（稀有度有独立筛选器）
+      filter.name = { $regex: keyword as string, $options: "i" };
+    }
 
     const items = await Item.find(filter)
       .sort({ rarity: 1, createdAt: -1 })
@@ -105,6 +114,47 @@ export async function deleteItem(req: AuthRequest, res: Response): Promise<void>
     item.isActive = false;
     await item.save();
     res.json({ success: true, message: "藏品已停用（绝版），不再从宝箱掉落" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * PUT /api/v1/items/:id/reactivate
+ * [管理员] 恢复已停用的藏品
+ */
+export async function reactivateItem(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) {
+      res.status(404).json({ success: false, error: "藏品不存在" });
+      return;
+    }
+    if (item.isActive) {
+      res.status(400).json({ success: false, error: "藏品已经是活跃状态" });
+      return;
+    }
+    item.isActive = true;
+    await item.save();
+    res.json({ success: true, message: "藏品已恢复，将重新出现在宝箱掉落中" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * DELETE /api/v1/items/:id/permanent
+ * [管理员] 彻底删除藏品（从数据库中移除）
+ */
+export async function permanentlyDeleteItem(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) {
+      res.status(404).json({ success: false, error: "藏品不存在" });
+      return;
+    }
+    await Item.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: `藏品"${item.name}"已彻底删除` });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -221,6 +271,48 @@ export async function getOtherUserCollections(req: AuthRequest, res: Response): 
     }
 
     res.json({ success: true, data: { collections: mergedList, grouped } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * DELETE /api/v1/user/collections/:itemId
+ * 删除用户的一个藏品（count>1则减1，count=1则移除记录）
+ */
+export async function deleteUserCollection(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user!.userId);
+    const itemId = req.params.itemId;
+
+    if (!mongoose.Types.ObjectId.isValid(itemId)) {
+      res.status(400).json({ success: false, error: "无效的藏品ID" });
+      return;
+    }
+
+    const collection = await UserCollection.findOne({
+      userId,
+      itemId: new mongoose.Types.ObjectId(itemId),
+      count: { $gt: 0 },
+    });
+
+    if (!collection) {
+      res.status(404).json({ success: false, error: "你没有该藏品" });
+      return;
+    }
+
+    if (collection.count > 1) {
+      collection.count -= 1;
+      await collection.save();
+    } else {
+      await UserCollection.deleteOne({ _id: collection._id });
+    }
+
+    await User.findByIdAndUpdate(userId, {
+      $inc: { "stats.totalCollections": -1 },
+    });
+
+    res.json({ success: true, message: "已删除一件藏品", remaining: Math.max(0, collection.count - 1) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

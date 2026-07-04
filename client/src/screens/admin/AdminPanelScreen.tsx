@@ -10,9 +10,9 @@ import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { RarityBadge } from "../../components/RarityBadge";
 import { EmptyState } from "../../components/EmptyState";
 import {
-  listItems, createItem, updateItem, deleteItem,
+  listItems, createItem, updateItem, deleteItem, reactivateItem, permanentlyDeleteItem,
   listEventTypes, createEventType, updateEventType, deleteEventType,
-  getDashboard, giftItem,
+  getDashboard, giftItem, getUserItemCounts,
 } from "../../services/admin.api";
 import { getAllFeedback, resolveFeedback, FeedbackItem } from "../../services/feedback.api";
 import api, { fixImageUrl } from "../../services/api";
@@ -21,7 +21,7 @@ import { ItemDetail, EventTypeData } from "../../types";
 const RARITY_OPTIONS = ["典藏", "神秘", "限定", "高端", "普通", "常见"];
 
 export function AdminPanelScreen({ navigation }: any) {
-  const [tab, setTab] = useState<"items" | "eventTypes" | "dashboard" | "chests" | "campus" | "feedback">("dashboard");
+  const [tab, setTab] = useState<"items" | "eventTypes" | "dashboard" | "chests" | "gift" | "feedback">("dashboard");
   const [loading, setLoading] = useState(true);
 
   // 反馈
@@ -41,10 +41,14 @@ export function AdminPanelScreen({ navigation }: any) {
   const [chestConfig, setChestConfig] = useState<any>({ gulou: { maxNormalChests: 3, advancedChance: 0.2, normalCooldownHours: 1, advancedCooldownHours: 1 }, xianlin: { maxNormalChests: 3, advancedChance: 0.2, normalCooldownHours: 1, advancedCooldownHours: 1 }, suzhou: { maxNormalChests: 3, advancedChance: 0.2, normalCooldownHours: 1, advancedCooldownHours: 1 } });
   const [dropConfig, setDropConfig] = useState<any>({ normal: {}, advanced: {} });
   const [giftUserId, setGiftUserId] = useState("");
-  const [giftItemId, setGiftItemId] = useState("");
-  const [giftItemName, setGiftItemName] = useState("");
+  const [giftItemIds, setGiftItemIds] = useState<string[]>([]);
+  const [giftSelectedIds, setGiftSelectedIds] = useState<string[]>([]);
   const [showGiftPicker, setShowGiftPicker] = useState(false);
   const [gifting, setGifting] = useState(false);
+  const [giftToast, setGiftToast] = useState("");
+  const [giftUserCounts, setGiftUserCounts] = useState<Record<string, number>>({});
+  const [giftSearchKeyword, setGiftSearchKeyword] = useState("");
+  const [giftSearchRarity, setGiftSearchRarity] = useState<string | null>(null);
   const [campusBounds, setCampusBounds] = useState<any>({ gulou: {}, xianlin: {}, suzhou: {} });
   const [savingBounds, setSavingBounds] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -90,7 +94,12 @@ export function AdminPanelScreen({ navigation }: any) {
     }
   };
   const [items, setItems] = useState<ItemDetail[]>([]);
+  const [allItems, setAllItems] = useState<ItemDetail[]>([]); // 全量藏品（不受搜索影响，用于赠送选择器）
   const [types, setTypes] = useState<EventTypeData[]>([]);
+  // 藏品搜索
+  const [itemSearchKeyword, setItemSearchKeyword] = useState("");
+  const [itemSearchRarity, setItemSearchRarity] = useState<string | null>(null);
+  const itemSearchDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -110,11 +119,11 @@ export function AdminPanelScreen({ navigation }: any) {
     setLoading(true);
     try {
       const [dRes, iRes, tRes, cRes, chestRes] = await Promise.all([
-        getDashboard(), listItems(1, 100), listEventTypes(),
+        getDashboard(), listItems(1, 100, undefined, undefined, true), listEventTypes(),
         api.get("/admin/campus-bounds"), api.get("/admin/chests"),
       ]);
       if (dRes.success && dRes.data) setDashboard(dRes.data);
-      if (iRes.success && iRes.data) setItems(iRes.data.items);
+      if (iRes.success && iRes.data) { setItems(iRes.data.items); setAllItems(iRes.data.items); }
       if (tRes.success && tRes.data) setTypes(tRes.data);
       if (chestRes && (chestRes as any).success) setActiveChests((chestRes as any).data || []);
       if (cRes && (cRes as any).success) {
@@ -140,6 +149,28 @@ export function AdminPanelScreen({ navigation }: any) {
       } catch {}
     } catch {} finally { setLoading(false); }
   }, [feedbackFilter]);
+
+  // 仅刷新藏品列表（搜索用，避免全量刷新）
+  const fetchItems = useCallback(async (kw: string, rarity: string | null) => {
+    try {
+      const iRes = await listItems(1, 100, rarity || undefined, kw.trim() || undefined, true);
+      if (iRes.success && iRes.data) setItems(iRes.data.items);
+    } catch {}
+  }, []);
+
+  // 搜索防抖
+  const handleItemSearch = useCallback((text: string) => {
+    setItemSearchKeyword(text);
+    if (itemSearchDebounceRef.current) clearTimeout(itemSearchDebounceRef.current);
+    itemSearchDebounceRef.current = setTimeout(() => {
+      fetchItems(text, itemSearchRarity);
+    }, 350);
+  }, [fetchItems, itemSearchRarity]);
+
+  const handleItemRarityFilter = useCallback((rarity: string | null) => {
+    setItemSearchRarity(rarity);
+    fetchItems(itemSearchKeyword, rarity);
+  }, [fetchItems, itemSearchKeyword]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -258,9 +289,9 @@ export function AdminPanelScreen({ navigation }: any) {
         {[
           { key: "dashboard" as const, label: "📊 概览" },
           { key: "items" as const, label: "🎁 藏品" },
+          { key: "gift" as const, label: "🎁 赠送" },
           { key: "eventTypes" as const, label: "🏷️ 类型" },
           { key: "chests" as const, label: "📦 宝箱" },
-          { key: "campus" as const, label: "🗺️ 校区" },
           { key: "feedback" as const, label: "📮 反馈" },
         ].map((t) => (
           <TouchableOpacity key={t.key} style={[styles.tab, tab === t.key && styles.tabActive]} onPress={() => setTab(t.key)}>
@@ -269,44 +300,190 @@ export function AdminPanelScreen({ navigation }: any) {
         ))}
       </View>
 
-      {/* 概览 */}
+      {/* 概览（含校区边界管理） */}
       {tab === "dashboard" && (
-        <View style={styles.dashboard}>
-          <View style={styles.dashCard}><Text style={styles.dashNumber}>{dashboard.totalUsers}</Text><Text style={styles.dashLabel}>总用户</Text></View>
-          <View style={styles.dashCard}><Text style={styles.dashNumber}>{dashboard.activeChests}</Text><Text style={styles.dashLabel}>活跃宝箱</Text></View>
-          <View style={styles.dashCard}><Text style={styles.dashNumber}>{dashboard.activeEvents}</Text><Text style={styles.dashLabel}>活跃活动</Text></View>
-        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }}>
+          <View style={styles.dashboard}>
+            <View style={styles.dashCard}><Text style={styles.dashNumber}>{dashboard.totalUsers}</Text><Text style={styles.dashLabel}>总用户</Text></View>
+            <View style={styles.dashCard}><Text style={styles.dashNumber}>{dashboard.activeChests}</Text><Text style={styles.dashLabel}>活跃宝箱</Text></View>
+            <View style={styles.dashCard}><Text style={styles.dashNumber}>{dashboard.activeEvents}</Text><Text style={styles.dashLabel}>活跃活动</Text></View>
+          </View>
+
+          <View style={{ padding: spacing.md }}>
+            <Text style={styles.chestTitle}>🗺️ 校区边界设置</Text>
+            <Text style={{ ...typography.caption, color: colors.textHint, marginBottom: spacing.lg }}>
+              在地图上点击选择西南角和东北角，构成一个矩形区域作为宝箱刷新范围。
+            </Text>
+
+            {["gulou", "xianlin", "suzhou"].map((c) => {
+              const b = campusBounds[c] || {};
+              const label = c === "gulou" ? "🏫 鼓楼校区" : c === "xianlin" ? "🏢 仙林校区" : "🏛️ 苏州校区";
+              const hasSW = b.minLat != null && b.minLng != null;
+              const hasNE = b.maxLat != null && b.maxLng != null;
+              return (
+                <View key={c} style={styles.boundsCard}>
+                  <Text style={styles.boundsTitle}>{label}</Text>
+                  <TouchableOpacity style={styles.mapPickBtn} onPress={() => {
+                    navigation.navigate("MapPicker", { campus: c, onSelect: (coord: any) => {
+                      setCampusBounds((prev: any) => ({ ...prev, [c]: { ...prev[c], minLat: coord.lat, minLng: coord.lng, minLatStr: String(coord.lat), minLngStr: String(coord.lng) } }));
+                    }});
+                  }}>
+                    {hasSW ? (
+                      <Text style={styles.mapPickDone}>✅ 西南角: {b.minLat?.toFixed(5)}, {b.minLng?.toFixed(5)} (点击重选)</Text>
+                    ) : (
+                      <Text style={styles.mapPickEmpty}>📍 点击选择西南角</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.mapPickBtn, { marginTop: spacing.sm }]} onPress={() => {
+                    navigation.navigate("MapPicker", { campus: c, onSelect: (coord: any) => {
+                      setCampusBounds((prev: any) => ({ ...prev, [c]: { ...prev[c], maxLat: coord.lat, maxLng: coord.lng, maxLatStr: String(coord.lat), maxLngStr: String(coord.lng) } }));
+                    }});
+                  }}>
+                    {hasNE ? (
+                      <Text style={styles.mapPickDone}>✅ 东北角: {b.maxLat?.toFixed(5)}, {b.maxLng?.toFixed(5)} (点击重选)</Text>
+                    ) : (
+                      <Text style={styles.mapPickEmpty}>📍 点击选择东北角</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+
+            <TouchableOpacity style={[styles.createChestBtn, savingBounds && styles.createChestBtnDisabled]} onPress={async () => {
+              setSavingBounds(true);
+              try {
+                for (const c of ["gulou", "xianlin", "suzhou"]) {
+                  const b = campusBounds[c] || {};
+                  const payload = {
+                    campus: c,
+                    minLng: parseFloat(b.minLngStr || b.minLng || 0),
+                    maxLng: parseFloat(b.maxLngStr || b.maxLng || 0),
+                    minLat: parseFloat(b.minLatStr || b.minLat || 0),
+                    maxLat: parseFloat(b.maxLatStr || b.maxLat || 0),
+                  };
+                  await api.put("/admin/campus-bounds", payload);
+                }
+                Alert.alert("✅", "校区边界已更新");
+                fetchAll();
+              } catch (e: any) { Alert.alert("失败", e?.error || "保存失败"); }
+              finally { setSavingBounds(false); }
+            }} disabled={savingBounds}>
+              <Text style={styles.createChestBtnText}>{savingBounds ? "保存中..." : "💾 保存边界"}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       )}
 
-      {/* 藏品列表 */}
-      {tab === "items" && (
-        <>
-          <TouchableOpacity style={styles.addBtn} onPress={() => openItemForm()}>
-            <Text style={styles.addBtnText}>+ 新增藏品</Text>
-          </TouchableOpacity>
-          <FlatList
-            data={items}
-            keyExtractor={(i) => i._id}
-            renderItem={({ item }) => (
-              <View style={[styles.listItem, !item.isActive && styles.listItemInactive]}>
+      {/* 藏品列表：活跃 + 已停用 */}
+      {tab === "items" && (() => {
+        const activeItems = items.filter((i) => i.isActive !== false);
+        const inactiveItems = items.filter((i) => i.isActive === false);
+        return (
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }}>
+            {/* 左侧：现有藏品 */}
+            <TouchableOpacity style={styles.addBtn} onPress={() => openItemForm()}>
+              <Text style={styles.addBtnText}>+ 新增藏品</Text>
+            </TouchableOpacity>
+
+            {/* 搜索栏 + 稀有度筛选 */}
+            <View style={styles.itemSearchBar}>
+              <View style={styles.itemSearchInputRow}>
+                <TextInput
+                  style={styles.itemSearchInput}
+                  placeholder="搜索藏品名称..."
+                  placeholderTextColor={colors.textHint}
+                  value={itemSearchKeyword}
+                  onChangeText={handleItemSearch}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                />
+                {itemSearchKeyword !== "" && (
+                  <TouchableOpacity
+                    style={styles.itemSearchClear}
+                    onPress={() => { setItemSearchKeyword(""); fetchItems("", itemSearchRarity); }}
+                  >
+                    <Text style={{ color: colors.textHint, fontSize: 16 }}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.itemRarityRow}>
+                <TouchableOpacity
+                  style={[styles.itemRarityChip, !itemSearchRarity && styles.itemRarityChipActive]}
+                  onPress={() => handleItemRarityFilter(null)}
+                >
+                  <Text style={[styles.itemRarityChipText, !itemSearchRarity && styles.itemRarityChipTextActive]}>全部</Text>
+                </TouchableOpacity>
+                {RARITY_OPTIONS.map((r) => (
+                  <TouchableOpacity
+                    key={r}
+                    style={[styles.itemRarityChip, itemSearchRarity === r && { borderColor: RARITY_COLORS[r], backgroundColor: RARITY_COLORS[r] + "18" }]}
+                    onPress={() => handleItemRarityFilter(itemSearchRarity === r ? null : r)}
+                  >
+                    <Text style={[styles.itemRarityChipText, itemSearchRarity === r && { color: RARITY_COLORS[r], fontWeight: "800" }]}>{r}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>📦 现有藏品</Text>
+              <Text style={styles.sectionCount}>{activeItems.length} 件</Text>
+            </View>
+            {activeItems.map((item) => (
+              <View key={item._id} style={styles.listItem}>
                 <View style={styles.listItemInfo}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
                     <Text style={styles.listItemName}>{item.name}</Text>
-                    {!item.isActive && <View style={styles.inactiveBadge}><Text style={styles.inactiveBadgeText}>已停用</Text></View>}
                   </View>
                   <RarityBadge rarity={item.rarity} size="sm" />
                 </View>
                 <TouchableOpacity style={styles.editBtn} onPress={() => openItemForm(item)}><Text style={styles.editBtnText}>编辑</Text></TouchableOpacity>
-                {item.isActive && (
-                  <TouchableOpacity style={styles.delBtn} onPress={() => handleDeleteItem(item)}><Text style={styles.delBtnText}>停用</Text></TouchableOpacity>
-                )}
+                <TouchableOpacity style={styles.delBtn} onPress={() => handleDeleteItem(item)}><Text style={styles.delBtnText}>停用</Text></TouchableOpacity>
               </View>
+            ))}
+            {activeItems.length === 0 && <Text style={styles.emptyHint}>暂无活跃藏品</Text>}
+
+            {/* 右侧：已停用藏品 */}
+            {inactiveItems.length > 0 && (
+              <>
+                <View style={[styles.sectionHeader, { marginTop: spacing.xxl }]}>
+                  <Text style={[styles.sectionTitle, { color: colors.error }]}>🛑 已停用</Text>
+                  <Text style={styles.sectionCount}>{inactiveItems.length} 件</Text>
+                </View>
+                {inactiveItems.map((item) => (
+                  <View key={item._id} style={[styles.listItem, styles.listItemInactive]}>
+                    <View style={styles.listItemInfo}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                        <Text style={styles.listItemName}>{item.name}</Text>
+                        <View style={styles.inactiveBadge}><Text style={styles.inactiveBadgeText}>已停用</Text></View>
+                      </View>
+                      <RarityBadge rarity={item.rarity} size="sm" />
+                    </View>
+                    <TouchableOpacity style={styles.editBtn} onPress={() => openItemForm(item)}><Text style={styles.editBtnText}>编辑</Text></TouchableOpacity>
+                    <TouchableOpacity style={[styles.editBtn, { backgroundColor: colors.success + "15" }]} onPress={async () => {
+                      try { await reactivateItem(item._id); Alert.alert("✅", "藏品已恢复"); fetchAll(); }
+                      catch (e: any) { Alert.alert("失败", e?.error || ""); }
+                    }}>
+                      <Text style={[styles.editBtnText, { color: colors.success }]}>恢复</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.delBtn, { backgroundColor: "#00000015" }]} onPress={() => {
+                      Alert.alert("彻底删除", `确定要彻底删除"${item.name}"吗？此操作不可恢复。`, [
+                        { text: "取消", style: "cancel" },
+                        { text: "彻底删除", style: "destructive", onPress: async () => {
+                          try { await permanentlyDeleteItem(item._id); Alert.alert("已删除"); fetchAll(); }
+                          catch (e: any) { Alert.alert("失败", e?.error || ""); }
+                        }},
+                      ]);
+                    }}>
+                      <Text style={[styles.delBtnText, { color: "#333" }]}>彻底删除</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </>
             )}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={<EmptyState emoji="🎁" title="暂无藏品" subtitle="点击上方按钮新增" />}
-          />
-        </>
-      )}
+          </ScrollView>
+        );
+      })()}
 
       {/* 宝箱发布 */}
       {tab === "chests" && (
@@ -500,77 +677,6 @@ export function AdminPanelScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          {/* 赠送藏品 */}
-          <View style={{ marginTop: spacing.xxl, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.xl }}>
-            <Text style={styles.chestTitle}>🎁 赠送藏品</Text>
-            <Text style={{ ...typography.caption, color: colors.textHint, marginBottom: spacing.md }}>
-              输入用户数字ID和藏品ID，将藏品直接赠送给用户（含已绝版）
-            </Text>
-            <Text style={styles.formLabel}>用户数字ID</Text>
-            <TextInput style={styles.formInput} value={giftUserId} onChangeText={setGiftUserId} placeholder="例如: 10001" placeholderTextColor={colors.textHint} keyboardType="number-pad" />
-            <Text style={styles.formLabel}>选择藏品</Text>
-            <TouchableOpacity style={styles.mapPickBtn} onPress={() => setShowGiftPicker(true)}>
-              {giftItemName ? (
-                <Text style={styles.mapPickDone}>✅ 已选择: {giftItemName} (点击更换)</Text>
-              ) : (
-                <Text style={styles.mapPickEmpty}>🎁 点击从藏品列表中选择</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.createChestBtn, { marginTop: spacing.md }, (!giftUserId.trim() || !giftItemId || gifting) && styles.createChestBtnDisabled]}
-              onPress={async () => {
-                if (!giftUserId.trim() || !giftItemId) return;
-                setGifting(true);
-                try {
-                  await giftItem(Number(giftUserId.trim()), giftItemId);
-                  Alert.alert("✅", "赠送成功！");
-                  setGiftUserId(""); setGiftItemId(""); setGiftItemName("");
-                } catch (e: any) { Alert.alert("失败", e?.error || "赠送失败，请检查ID是否正确"); }
-                finally { setGifting(false); }
-              }}
-              disabled={!giftUserId.trim() || !giftItemId || gifting}
-            >
-              <Text style={styles.createChestBtnText}>{gifting ? "赠送中..." : "🎁 确认赠送"}</Text>
-            </TouchableOpacity>
-
-            {/* 藏品选择弹窗 */}
-            <Modal visible={showGiftPicker} transparent animationType="slide" onRequestClose={() => setShowGiftPicker(false)}>
-              <View style={styles.modalOverlay}>
-                <View style={[styles.modalCard, { maxHeight: "75%" }]}>
-                  <View style={{ padding: spacing.lg, flex: 1 }}>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm }}>
-                      <Text style={{ ...typography.h3 }}>🎁 选择藏品</Text>
-                      <TouchableOpacity onPress={() => setShowGiftPicker(false)}><Text style={{ ...typography.h2, color: colors.primary }}>✕</Text></TouchableOpacity>
-                    </View>
-                    <FlatList
-                      data={items}
-                      style={{ flex: 1 }}
-                      keyExtractor={(i) => i._id}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={[styles.listItem, giftItemId === item._id && { borderColor: colors.primary, borderWidth: 2 }]}
-                          onPress={() => { setGiftItemId(item._id); setGiftItemName(`${item.name} (${item.rarity})`); setShowGiftPicker(false); }}
-                        >
-                          <View style={styles.listItemInfo}>
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-                              <Text style={styles.listItemName}>{item.name}</Text>
-                              {!item.isActive && <View style={styles.inactiveBadge}><Text style={styles.inactiveBadgeText}>已绝版</Text></View>}
-                            </View>
-                            <RarityBadge rarity={item.rarity} size="sm" />
-                          </View>
-                        </TouchableOpacity>
-                      )}
-                      ListEmptyComponent={<EmptyState emoji="🎁" title="暂无藏品" />}
-                    />
-                    <TouchableOpacity style={[styles.cancelBtn, { marginTop: spacing.md }]} onPress={() => setShowGiftPicker(false)}>
-                      <Text style={styles.cancelBtnText}>取消</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
-          </View>
-
           {activeChests.length > 0 && (
             <View style={{ marginTop: spacing.xl }}>
               <Text style={{ ...typography.bodyBold, color: colors.textPrimary, marginBottom: spacing.sm }}>活跃宝箱 ({activeChests.length})</Text>
@@ -598,69 +704,190 @@ export function AdminPanelScreen({ navigation }: any) {
         </ScrollView>
       )}
 
-      {/* 校区边界管理 */}
-      {tab === "campus" && (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.md }}>
-          <Text style={styles.chestTitle}>🗺️ 校区边界设置</Text>
-          <Text style={{ ...typography.caption, color: colors.textHint, marginBottom: spacing.lg }}>
-            在地图上点击选择西南角和东北角，构成一个矩形区域作为宝箱刷新范围。
+      {/* 赠送藏品 */}
+      {tab === "gift" && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.md, paddingBottom: 120 }}>
+          {/* 自动消失Toast */}
+          {giftToast !== "" && (
+            <View style={[styles.giftToast, giftToast.startsWith("❌") ? { backgroundColor: colors.error } : giftToast.startsWith("⚠️") ? { backgroundColor: colors.warning } : { backgroundColor: colors.success }]}>
+              <Text style={styles.giftToastText}>{giftToast}</Text>
+            </View>
+          )}
+
+          <Text style={styles.chestTitle}>🎁 赠送藏品</Text>
+          <Text style={{ ...typography.caption, color: colors.textHint, marginBottom: spacing.md }}>
+            输入用户数字ID，选择多个藏品一次性赠送给用户（含已绝版）
           </Text>
+          <Text style={styles.formLabel}>用户数字ID</Text>
+          <TextInput style={styles.formInput} value={giftUserId} onChangeText={setGiftUserId} placeholder="例如: 10001" placeholderTextColor={colors.textHint} keyboardType="number-pad" />
 
-          {["gulou", "xianlin", "suzhou"].map((c) => {
-            const b = campusBounds[c] || {};
-            const label = c === "gulou" ? "🏫 鼓楼校区" : c === "xianlin" ? "🏢 仙林校区" : "🏛️ 苏州校区";
-            const hasSW = b.minLat != null && b.minLng != null;
-            const hasNE = b.maxLat != null && b.maxLng != null;
-            return (
-              <View key={c} style={styles.boundsCard}>
-                <Text style={styles.boundsTitle}>{label}</Text>
-                <TouchableOpacity style={styles.mapPickBtn} onPress={() => {
-                  navigation.navigate("MapPicker", { campus: c, onSelect: (coord: any) => {
-                    setCampusBounds((prev: any) => ({ ...prev, [c]: { ...prev[c], minLat: coord.lat, minLng: coord.lng, minLatStr: String(coord.lat), minLngStr: String(coord.lng) } }));
-                  }});
-                }}>
-                  {hasSW ? (
-                    <Text style={styles.mapPickDone}>✅ 西南角: {b.minLat?.toFixed(5)}, {b.minLng?.toFixed(5)} (点击重选)</Text>
-                  ) : (
-                    <Text style={styles.mapPickEmpty}>📍 点击选择西南角</Text>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.mapPickBtn, { marginTop: spacing.sm }]} onPress={() => {
-                  navigation.navigate("MapPicker", { campus: c, onSelect: (coord: any) => {
-                    setCampusBounds((prev: any) => ({ ...prev, [c]: { ...prev[c], maxLat: coord.lat, maxLng: coord.lng, maxLatStr: String(coord.lat), maxLngStr: String(coord.lng) } }));
-                  }});
-                }}>
-                  {hasNE ? (
-                    <Text style={styles.mapPickDone}>✅ 东北角: {b.maxLat?.toFixed(5)}, {b.maxLng?.toFixed(5)} (点击重选)</Text>
-                  ) : (
-                    <Text style={styles.mapPickEmpty}>📍 点击选择东北角</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-
-          <TouchableOpacity style={[styles.createChestBtn, savingBounds && styles.createChestBtnDisabled]} onPress={async () => {
-            setSavingBounds(true);
+          <Text style={styles.formLabel}>已选藏品（{giftItemIds.length} 件）</Text>
+          <TouchableOpacity style={styles.mapPickBtn} onPress={async () => {
+            if (!giftUserId.trim()) {
+              setGiftToast("⚠️ 请先输入用户数字ID");
+              setTimeout(() => setGiftToast(""), 2000);
+              return;
+            }
+            setGiftSelectedIds([...giftItemIds]);
+            setGiftSearchKeyword("");
+            setGiftSearchRarity(null);
             try {
-              for (const c of ["gulou", "xianlin", "suzhou"]) {
-                const b = campusBounds[c] || {};
-                const payload = {
-                  campus: c,
-                  minLng: parseFloat(b.minLngStr || b.minLng || 0),
-                  maxLng: parseFloat(b.maxLngStr || b.maxLng || 0),
-                  minLat: parseFloat(b.minLatStr || b.minLat || 0),
-                  maxLat: parseFloat(b.maxLatStr || b.maxLat || 0),
-                };
-                await api.put("/admin/campus-bounds", payload);
+              const r = await getUserItemCounts(Number(giftUserId.trim()));
+              if (r.success) setGiftUserCounts(r.data!);
+              setShowGiftPicker(true);
+            } catch (e: any) {
+              setGiftUserCounts({});
+              if (e?.error?.includes("用户不存在") || e?.error?.includes("未找到")) {
+                setGiftToast("❌ 用户ID不存在，请重新输入");
+                setTimeout(() => setGiftToast(""), 2500);
+              } else {
+                setShowGiftPicker(true); // 网络错误仍然可以选，但不显示持有量
               }
-              Alert.alert("✅", "校区边界已更新");
-              fetchAll();
-            } catch (e: any) { Alert.alert("失败", e?.error || "保存失败"); }
-            finally { setSavingBounds(false); }
-          }} disabled={savingBounds}>
-            <Text style={styles.createChestBtnText}>{savingBounds ? "保存中..." : "💾 保存边界"}</Text>
+            }
+          }}>
+            {giftItemIds.length > 0 ? (
+              <View>
+                {giftItemIds.map((id) => {
+                  const it = allItems.find((i) => i._id === id) || items.find((i) => i._id === id);
+                  return it ? (
+                    <Text key={id} style={{ ...typography.small, color: colors.primary, marginBottom: 2 }}>
+                      ✅ {it.name}（{it.rarity}）
+                      <Text style={{ color: colors.error, fontWeight: "700" }} onPress={() => setGiftItemIds((prev) => prev.filter((x) => x !== id))}>  ✕移除</Text>
+                    </Text>
+                  ) : null;
+                })}
+                <Text style={{ ...typography.small, color: colors.textHint, marginTop: spacing.xs }}>点击添加更多</Text>
+              </View>
+            ) : (
+              <Text style={styles.mapPickEmpty}>🎁 点击从藏品列表中选择（可多选）</Text>
+            )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.createChestBtn, { marginTop: spacing.md }, (!giftUserId.trim() || giftItemIds.length === 0 || gifting) && styles.createChestBtnDisabled]}
+            onPress={async () => {
+              if (!giftUserId.trim() || giftItemIds.length === 0) return;
+              setGifting(true);
+              try {
+                await giftItem(Number(giftUserId.trim()), giftItemIds);
+                setGiftToast(`✅ 已成功赠送 ${giftItemIds.length} 件藏品！`);
+                setTimeout(() => setGiftToast(""), 2000);
+                setGiftUserId(""); setGiftItemIds([]);
+              } catch (e: any) { setGiftToast("❌ " + (e?.error || "赠送失败")); setTimeout(() => setGiftToast(""), 3000); }
+              finally { setGifting(false); }
+            }}
+            disabled={!giftUserId.trim() || giftItemIds.length === 0 || gifting}
+          >
+            <Text style={styles.createChestBtnText}>{gifting ? "赠送中..." : `🎁 确认赠送（${giftItemIds.length}件）`}</Text>
+          </TouchableOpacity>
+
+          {/* 藏品多选弹窗 */}
+          <Modal visible={showGiftPicker} transparent animationType="slide" onRequestClose={() => setShowGiftPicker(false)}>
+            <View style={styles.modalOverlay}>
+              <View style={[styles.modalCard, { maxHeight: "80%" }]}>
+                <View style={{ padding: spacing.lg, paddingBottom: 0, flex: 1, display: "flex", flexDirection: "column" }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.xs }}>
+                    <Text style={{ ...typography.h3 }}>🎁 选择藏品（多选）</Text>
+                    <TouchableOpacity onPress={() => setShowGiftPicker(false)}><Text style={{ ...typography.h2, color: colors.primary }}>✕</Text></TouchableOpacity>
+                  </View>
+                  <Text style={{ ...typography.small, color: colors.textHint, marginBottom: spacing.sm }}>
+                    已选 {giftSelectedIds.length} 件 · 点击藏品切换选中状态
+                  </Text>
+
+                  {/* ── 搜索 + 分类（紧凑顶部栏） ── */}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm }}>
+                    <TextInput
+                      style={[styles.formInput, { flex: 1, marginBottom: 0, paddingVertical: 6 }]}
+                      placeholder="关键词搜索..."
+                      placeholderTextColor={colors.textHint}
+                      value={giftSearchKeyword}
+                      onChangeText={setGiftSearchKeyword}
+                      autoCorrect={false}
+                    />
+                    {giftSearchKeyword !== "" && (
+                      <TouchableOpacity onPress={() => setGiftSearchKeyword("")}>
+                        <Text style={{ color: colors.textHint, fontWeight: "700" }}>✕</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginBottom: spacing.sm }}>
+                    <TouchableOpacity
+                      style={[styles.itemRarityChip, !giftSearchRarity && styles.itemRarityChipActive]}
+                      onPress={() => setGiftSearchRarity(null)}
+                    >
+                      <Text style={[styles.itemRarityChipText, !giftSearchRarity && styles.itemRarityChipTextActive]}>全部</Text>
+                    </TouchableOpacity>
+                    {RARITY_OPTIONS.map((r) => (
+                      <TouchableOpacity
+                        key={r}
+                        style={[styles.itemRarityChip, giftSearchRarity === r && styles.itemRarityChipActive]}
+                        onPress={() => setGiftSearchRarity(giftSearchRarity === r ? null : r)}
+                      >
+                        <Text style={[styles.itemRarityChipText, giftSearchRarity === r && styles.itemRarityChipTextActive]}>{r}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <FlatList
+                    data={allItems.filter((item) => {
+                      if (giftSearchRarity && item.rarity !== giftSearchRarity) return false;
+                      if (giftSearchKeyword.trim()) {
+                        const kw = giftSearchKeyword.trim().toLowerCase();
+                        return item.name.toLowerCase().includes(kw) || item.rarity.toLowerCase().includes(kw);
+                      }
+                      return true;
+                    })}
+                    style={{ flex: 1, minHeight: 0 }}
+                    keyExtractor={(i) => i._id}
+                    renderItem={({ item }) => {
+                      const isSel = giftSelectedIds.includes(item._id);
+                      const hasCount = (giftUserCounts[item._id] || 0) > 0;
+                      return (
+                        <TouchableOpacity
+                          style={[
+                            styles.listItem,
+                            isSel && { borderColor: colors.primary, borderWidth: 2, backgroundColor: colors.primary + "0A" },
+                            hasCount && { opacity: 0.55 },
+                          ]}
+                          onPress={() => setGiftSelectedIds((prev) => prev.includes(item._id) ? prev.filter((x) => x !== item._id) : [...prev, item._id])}
+                        >
+                          <View style={{ width: 22, height: 22, borderRadius: 4, borderWidth: 2, borderColor: isSel ? colors.primary : colors.border, backgroundColor: isSel ? colors.primary : "transparent", marginRight: spacing.sm, alignItems: "center", justifyContent: "center" }}>
+                            {isSel && <Text style={{ color: "#FFF", fontSize: 14, fontWeight: "900" }}>✓</Text>}
+                          </View>
+                          <View style={styles.listItemInfo}>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                              <Text style={[styles.listItemName, hasCount && { color: colors.textHint }]}>{item.name}</Text>
+                              {!item.isActive && <View style={styles.inactiveBadge}><Text style={styles.inactiveBadgeText}>已绝版</Text></View>}
+                              {hasCount && (
+                                <View style={{ backgroundColor: colors.surfaceAlt, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 }}>
+                                  <Text style={{ ...typography.small, color: colors.textHint, fontSize: 10 }}>已拥有</Text>
+                                </View>
+                              )}
+                              {!hasCount && (
+                                <View style={{ backgroundColor: colors.primary + "15", paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 }}>
+                                  <Text style={{ ...typography.small, color: colors.primary, fontWeight: "700", fontSize: 10 }}>未拥有</Text>
+                                </View>
+                              )}
+                            </View>
+                            <RarityBadge rarity={item.rarity} size="sm" />
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    }}
+                    ListEmptyComponent={<EmptyState emoji="🎁" title="暂无藏品" />}
+                  />
+                  <View style={{ flexDirection: "row", gap: spacing.md, marginTop: spacing.md, paddingBottom: spacing.lg }}>
+                    <TouchableOpacity style={[styles.saveFormBtn, { flex: 1, backgroundColor: colors.primary }]} onPress={() => { setGiftItemIds([...giftSelectedIds]); setShowGiftPicker(false); }}>
+                      <Text style={styles.saveFormBtnText}>确认（{giftSelectedIds.length}件）</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.cancelBtn, { flex: 1 }]} onPress={() => { setShowGiftPicker(false); }}>
+                      <Text style={styles.cancelBtnText}>取消</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Modal>
         </ScrollView>
       )}
 
@@ -938,6 +1165,10 @@ const styles = StyleSheet.create({
   },
   addBtnText: { ...typography.bodyBold, color: "#FFF" },
   listContent: { padding: spacing.md, paddingBottom: 100 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, marginTop: spacing.md, marginBottom: spacing.sm },
+  sectionTitle: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 16 },
+  sectionCount: { ...typography.caption, color: colors.textHint },
+  emptyHint: { ...typography.caption, color: colors.textHint, textAlign: "center", padding: spacing.xl },
   listItem: {
     flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
     borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm,
@@ -1067,4 +1298,28 @@ const styles = StyleSheet.create({
   },
   fbResolveBtnText: { ...typography.caption, fontWeight: "700", color: colors.success },
   fbResolvedMeta: { ...typography.small, color: colors.textHint, marginTop: spacing.sm, fontStyle: "italic" },
+  // Toast
+  giftToast: {
+    backgroundColor: colors.success, borderRadius: borderRadius.lg, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4,
+  },
+  giftToastText: { ...typography.bodyBold, color: "#FFF" },
+  // 藏品搜索
+  itemSearchBar: { paddingHorizontal: spacing.md, marginBottom: spacing.sm },
+  itemSearchInputRow: { flexDirection: "row", alignItems: "center", marginBottom: spacing.sm },
+  itemSearchInput: {
+    flex: 1, backgroundColor: colors.surface, borderRadius: borderRadius.md,
+    borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm, ...typography.body, color: colors.textPrimary, fontSize: 14,
+  },
+  itemSearchClear: { padding: spacing.sm, marginLeft: spacing.xs },
+  itemRarityRow: { flexDirection: "row", gap: spacing.xs },
+  itemRarityChip: {
+    paddingHorizontal: spacing.md, paddingVertical: 6,
+    borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  itemRarityChipActive: { borderColor: colors.primary, backgroundColor: colors.primary + "15" },
+  itemRarityChipText: { ...typography.caption, fontWeight: "600", color: colors.textSecondary },
+  itemRarityChipTextActive: { color: colors.primary, fontWeight: "800" },
 });

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, SectionList, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView,
+  RefreshControl, ActivityIndicator, Modal, ScrollView, TextInput,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { colors, typography, spacing, borderRadius, HAND, SERIF, KAI, BODY } from "../../theme";
 import { CollectionCard } from "../../components/CollectionCard";
 import { EmptyState } from "../../components/EmptyState";
@@ -34,6 +35,7 @@ export function GalleryScreen({ navigation }: any) {
   const [myNotes, setMyNotes] = useState<NoteData[]>([]);
   const [notesLoading, setNotesLoading] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NoteData | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const listRef = useRef<SectionList>(null);
 
   const fetchCollections = useCallback(async () => {
@@ -53,7 +55,11 @@ export function GalleryScreen({ navigation }: any) {
     }
   }, []);
 
-  useEffect(() => { fetchCollections(); }, [fetchCollections]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchCollections();
+    }, [fetchCollections])
+  );
 
   const onRefresh = () => { setRefreshing(true); fetchCollections(); };
 
@@ -66,12 +72,30 @@ export function GalleryScreen({ navigation }: any) {
     }
   }, [myNotes.length]);
 
+  // 关键词过滤后的藏品
+  const filteredGrouped = useMemo(() => {
+    const kw = searchKeyword.trim().toLowerCase();
+    if (!kw) return grouped;
+    const result: Record<string, CollectionItem[]> = {};
+    for (const rarity of RARITY_ORDER) {
+      const items = grouped[rarity];
+      if (!items) continue;
+      const filtered = items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(kw) ||
+          item.rarity.toLowerCase().includes(kw)
+      );
+      if (filtered.length > 0) result[rarity] = filtered;
+    }
+    return result;
+  }, [grouped, searchKeyword]);
+
   // 构建 SectionList 数据：每个 section = 一种稀有度，data = 行数组（每行最多3个）
   const sections = RARITY_ORDER
-    .filter((r) => grouped[r]?.length > 0)
+    .filter((r) => filteredGrouped[r]?.length > 0)
     .map((rarity) => ({
       rarity,
-      data: chunkRows(grouped[rarity]),
+      data: chunkRows(filteredGrouped[rarity]),
     }));
 
   const scrollToRarity = (rarity: string) => {
@@ -82,7 +106,8 @@ export function GalleryScreen({ navigation }: any) {
     }
   };
 
-  const totalCount = Object.values(grouped).reduce((s, arr) => s + arr.length, 0);
+  const totalCount = Object.values(filteredGrouped).reduce((s, arr) => s + arr.reduce((sum, item) => sum + (item.count || 1), 0), 0);
+  const totalAllCount = Object.values(grouped).reduce((s, arr) => s + arr.reduce((sum, item) => sum + (item.count || 1), 0), 0);
 
   if (loading) {
     return (
@@ -93,14 +118,7 @@ export function GalleryScreen({ navigation }: any) {
     );
   }
 
-  if (sections.length === 0) {
-    return (
-      <View style={styles.container}>
-        <DotPaper />
-        <EmptyState emoji="🐚" title="展柜空空的" subtitle="去地图聆听频率，拾取鲸落获得鲸藏吧！" />
-      </View>
-    );
-  }
+  const hasAnyCollection = Object.values(grouped).some((arr) => arr.length > 0);
 
   return (
     <View style={styles.container}>
@@ -123,13 +141,42 @@ export function GalleryScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         </View>
-        {!showNotes && <Text style={styles.headerSub}>已采集 {totalCount} 枚鲸藏</Text>}
+        {!showNotes && (
+          <Text style={styles.headerSub}>
+            已采集 {totalAllCount} 枚鲸藏
+            {searchKeyword.trim() ? ` · 筛选出 ${totalCount} 枚` : ""}
+          </Text>
+        )}
       </View>
+
+      {/* ── 关键词搜索（纸条模式下隐藏） ── */}
+      {!showNotes && (
+        <View style={styles.searchBar}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="搜索藏品名称..."
+            placeholderTextColor={colors.textHint}
+            value={searchKeyword}
+            onChangeText={setSearchKeyword}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {searchKeyword !== "" && (
+            <TouchableOpacity
+              style={styles.searchClear}
+              onPress={() => setSearchKeyword("")}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: colors.textHint, fontSize: 15, fontWeight: "700" }}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* ── 左侧浮动稀有度标签（纸条模式下隐藏） ── */}
       {!showNotes && <View style={styles.floatTabBar}>
         {RARITY_ORDER.map((rarity) => {
-          const has = grouped[rarity]?.length > 0;
+          const has = filteredGrouped[rarity]?.length > 0;
           const active = selectedRarity === rarity;
           const color = RARITY_COLORS[rarity] || "#999";
           return (
@@ -189,6 +236,17 @@ export function GalleryScreen({ navigation }: any) {
            />
           }
         </View>
+      ) : sections.length === 0 ? (
+        /* ── 搜索无结果或展柜为空（搜索栏保持可见） ── */
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: spacing.xxxl }}>
+          <WhaleMark size={44} color={colors.primary} eye="#fff" />
+          <Text style={{ color: colors.textHint, marginTop: spacing.md }}>
+            {hasAnyCollection ? "没有匹配的藏品" : "展柜空空的"}
+          </Text>
+          <Text style={{ ...typography.caption, color: colors.textHint, marginTop: spacing.xs }}>
+            {hasAnyCollection ? "换个关键词试试" : "去地图聆听频率，拾取鲸落获得鲸藏吧！"}
+          </Text>
+        </View>
       ) : (
       /* ── 虚拟化列表（只渲染可见区域的卡片） ── */
       <SectionList
@@ -202,7 +260,7 @@ export function GalleryScreen({ navigation }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
         renderSectionHeader={({ section }) => {
           const color = RARITY_COLORS[section.rarity] || "#999";
-          const count = grouped[section.rarity]?.length || 0;
+          const count = (filteredGrouped[section.rarity] || []).reduce((s, item) => s + (item.count || 1), 0);
           return (
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color }]}>{section.rarity === "神秘" ? "✦ " : ""}{section.rarity}</Text>
@@ -322,4 +380,24 @@ const styles = StyleSheet.create({
   letterText: { fontFamily: KAI, fontSize: 16, lineHeight: 28, color: colors.ink },
   noteCloseBtn: { backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 14, width: "100%", alignItems: "center", marginTop: 18 },
   noteCloseTxt: { fontFamily: BODY, color: "#fff", fontWeight: "800", fontSize: 15 },
+  // 搜索栏
+  searchBar: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    zIndex: 10,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontFamily: BODY,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  searchClear: { padding: spacing.sm, marginLeft: spacing.xs },
 });

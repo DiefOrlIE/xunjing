@@ -143,7 +143,7 @@ export const ALLOWED_ACTIVITY_TRANSITIONS: Record<ActivityStatus, ActivityStatus
 
 // ── 参与者状态流转规则 ──
 export const ALLOWED_PARTICIPANT_TRANSITIONS: Record<ParticipantStatus, ParticipantStatus[]> = {
-  [ParticipantStatus.APPLIED]: [ParticipantStatus.ACCEPTED, ParticipantStatus.REJECTED],
+  [ParticipantStatus.APPLIED]: [ParticipantStatus.ACCEPTED, ParticipantStatus.REJECTED, ParticipantStatus.EXITED],
   [ParticipantStatus.ACCEPTED]: [ParticipantStatus.EXITED],
   [ParticipantStatus.REJECTED]: [],
   [ParticipantStatus.EXITED]: [],

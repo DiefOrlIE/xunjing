@@ -68,7 +68,7 @@ export function EventDetailScreen({ route, navigation }: any) {
 
   const handleExit = async () => {
     setActionLoading(true);
-    try { await exitEvent(eventId); setShowExitModal(false); fetchDetail(); Alert.alert("已退出", "你已退出该活动"); }
+    try { await exitEvent(eventId); setShowExitModal(false); fetchDetail(); Alert.alert(myStatus === "applied" ? "已取消" : "已退出", myStatus === "applied" ? "已取消申请" : "你已退出该活动"); }
     catch (e: any) { Alert.alert("失败", e?.error || "操作失败"); }
     finally { setActionLoading(false); }
   };
@@ -212,6 +212,15 @@ export function EventDetailScreen({ route, navigation }: any) {
           </View>
         )}
 
+        {/* 已申请（待审核）可取消申请 */}
+        {!isHost && myStatus === "applied" && event.status === "recruiting" && (
+          <View style={styles.actions}>
+            <TouchableOpacity style={[styles.actionBtn, styles.exitBtn]} onPress={() => setShowExitModal(true)}>
+              <Text style={[styles.actionBtnText, { color: colors.warning }]}>↩ 取消申请</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* 非参与者可以申请加入 */}
         {!isHost && !isParticipant && event.status === "recruiting" && (
           <View style={styles.actions}>
@@ -237,7 +246,15 @@ export function EventDetailScreen({ route, navigation }: any) {
       {/* Modals */}
       <ConfirmModal visible={showStopModal} title="停止招募" message="确认停止招募吗？停止后其他人将无法申请加入。" confirmText="确认停止" onConfirm={handleStop} onCancel={() => setShowStopModal(false)} />
       <ConfirmModal visible={showCancelModal} title="取消活动" message="确认取消活动吗？此操作不可撤销，所有参与者将收到通知。" confirmText="确认取消" confirmColor={colors.error} onConfirm={handleCancel} onCancel={() => setShowCancelModal(false)} />
-      <ConfirmModal visible={showExitModal} title="退出活动" message="确认退出活动吗？退出后将不再接收活动通知。" confirmText="确认退出" confirmColor={colors.error} onConfirm={handleExit} onCancel={() => setShowExitModal(false)} />
+      <ConfirmModal
+        visible={showExitModal}
+        title={myStatus === "applied" ? "取消申请" : "退出活动"}
+        message={myStatus === "applied" ? "确认取消申请吗？取消后该活动将从「我参与的」中移除。" : "确认退出活动吗？退出后将不再接收活动通知。"}
+        confirmText={myStatus === "applied" ? "确认取消" : "确认退出"}
+        confirmColor={myStatus === "applied" ? colors.warning : colors.error}
+        onConfirm={handleExit}
+        onCancel={() => setShowExitModal(false)}
+      />
     </View>
   );
 }

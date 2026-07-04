@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { listItems, createItem, getItemDetail, updateItem, deleteItem, getUserCollections, getOtherUserCollections } from "../controllers/item.controller";
+import { listItems, createItem, getItemDetail, updateItem, deleteItem, reactivateItem, permanentlyDeleteItem, getUserCollections, getOtherUserCollections } from "../controllers/item.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { adminMiddleware } from "../middleware/admin.middleware";
 
@@ -18,6 +18,8 @@ router.get("/", adminMiddleware, listItems);
 router.post("/", adminMiddleware, createItem);
 router.put("/:id", adminMiddleware, updateItem);
 router.delete("/:id", adminMiddleware, deleteItem);
+router.put("/:id/reactivate", adminMiddleware, reactivateItem);
+router.delete("/:id/permanent", adminMiddleware, permanentlyDeleteItem);
 
 // ── 公共藏品详情 ──
 router.get("/:id", getItemDetail);

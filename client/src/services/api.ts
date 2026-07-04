@@ -8,7 +8,9 @@ const BASE_URL = `${SERVER}/api/v1`;
 export function fixImageUrl(url: string): string {
   if (!url) return "";
   if (url.startsWith("http")) return url;
-  if (Platform.OS === "web") return `https://seekwhale.cn${url}`;
+  // Web端使用相对路径即可——同源部署，浏览器自动拼完整URL
+  // （若nginx未代理/uploads，需在nginx加：location /uploads/ { proxy_pass http://127.0.0.1:3000; }）
+  if (Platform.OS === "web") return url;
   return `${SERVER}${url}`;
 }
 
