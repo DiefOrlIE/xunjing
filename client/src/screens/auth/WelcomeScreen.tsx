@@ -1,5 +1,5 @@
 ﻿import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image } from "react-native";
 import { updateProfile } from "../../services/user.api";
 import { useAuthStore } from "../../store/authStore";
 import { colors, typography, spacing, borderRadius, HAND, SERIF } from "../../theme";
@@ -37,7 +37,7 @@ export function WelcomeScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
-        <View style={styles.mark}><WhaleMark size={58} color={colors.primary} eye="#fff" /></View>
+        <Image source={require("../../../assets/icons/icon_whale_logo.png")} style={styles.logo} resizeMode="contain" />
         <Text style={styles.title}>欢迎登船</Text>
         <Text style={styles.titleEn}>welcome aboard</Text>
         <View style={{ marginVertical: spacing.md }}><Waveform w={180} h={12} color={colors.secondary} sw={1.6} opacity={0.8} /></View>
@@ -88,6 +88,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.primary + "44", alignItems: "center", justifyContent: "center",
     marginBottom: spacing.lg,
   },
+  logo: { width: 132, height: 132, marginBottom: spacing.lg },
   title: {
     fontFamily: HAND,
     fontSize: 34,

@@ -1,5 +1,5 @@
 ﻿import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../navigation/AuthStack";
 import { sendVerifyCode, loginWithPassword } from "../../services/auth.api";
@@ -85,7 +85,7 @@ export function EmailInputScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
-        <View style={styles.mark}><WhaleMark size={56} color={colors.primary} eye="#fff" /></View>
+        <Image source={require("../../../assets/icons/icon_whale_logo.png")} style={styles.logo} resizeMode="contain" />
         <Text style={styles.title}>寻鲸</Text>
         <Waveform w={150} h={11} color={colors.secondary} sw={1.6} opacity={0.8} />
         <Text style={styles.subtitle}>循着鲸歌，用南大邮箱登船</Text>
@@ -152,6 +152,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, justifyContent: "center" },
   content: { paddingHorizontal: spacing.xxxl, alignItems: "center" },
   mark: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.primary + "14", borderWidth: 1, borderColor: colors.primary + "44", alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
+  logo: { width: 128, height: 128, marginBottom: spacing.md },
   title: { fontFamily: HAND, fontSize: 36, color: colors.ink, marginBottom: 2, textAlign: "center" },
   subtitle: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: colors.textSecondary, marginTop: 4, marginBottom: spacing.xl, textAlign: "center" },
   modeSwitch: { flexDirection: "row", backgroundColor: colors.primary + "10", borderRadius: 8, padding: 3, marginBottom: spacing.xxl, width: "100%" },
