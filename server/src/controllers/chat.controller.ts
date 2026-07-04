@@ -4,6 +4,7 @@ import { Message } from "../models/Message";
 import { User } from "../models/User";
 import { ConversationType, ContentType } from "../config/constants";
 import { getPrivateConversationId, getGroupConversationId } from "../utils/conversationId";
+import { decryptContent } from "../utils/crypto";
 import { getIO } from "../socket";
 
 export async function getPrivateChatHistory(req: AuthRequest, res: Response): Promise<void> {
@@ -35,7 +36,7 @@ export async function getPrivateChatHistory(req: AuthRequest, res: Response): Pr
           senderId: sid,
           senderNickname: s?.nickname || "用户",
           senderAvatar: s?.avatar || "",
-          content: m.content,
+          content: decryptContent(m.content),
           contentType: m.contentType,
           isRevoked: m.isRevoked || false,
           createdAt: m.createdAt,
@@ -119,7 +120,7 @@ export async function getGroupChatHistory(req: AuthRequest, res: Response): Prom
           senderId: sid,
           senderNickname: s?.nickname || "用户",
           senderAvatar: s?.avatar || "",
-          content: m.content,
+          content: decryptContent(m.content),
           contentType: m.contentType,
           isRevoked: m.isRevoked || false,
           createdAt: m.createdAt,

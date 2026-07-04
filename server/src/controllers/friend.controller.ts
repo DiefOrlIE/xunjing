@@ -3,6 +3,7 @@ import { AuthRequest } from "../types";
 import { User } from "../models/User";
 import { Friendship } from "../models/Friendship";
 import { Message } from "../models/Message";
+import { decryptContent } from "../utils/crypto";
 import { FriendshipStatus, NotificationType } from "../config/constants";
 import { createNotification } from "../services/notification.service";
 import { getIO } from "../socket";
@@ -34,7 +35,7 @@ export async function getFriendList(req: AuthRequest, res: Response): Promise<vo
           userId: friend.userId,
           nickname: friend.nickname,
           avatar: friend.avatar,
-          lastMessage: lastMsg?.content || "",
+          lastMessage: decryptContent(lastMsg?.content) || "",
           lastMessageTime: lastMsg?.createdAt || null,
         };
       })
