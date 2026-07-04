@@ -18,7 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 
 export function ProfileScreen({ navigation }: any) {
   const { user, setUser, logout } = useAuthStore();
-  const [stats, setStats] = useState(user?.stats || { totalCollections: 0, hostedEvents: 0, participatedEvents: 0 });
+  const [stats, setStats] = useState(user?.stats || { totalCollections: 0, hostedEvents: 0, participatedEvents: 0, successRate: null });
   const [refreshing, setRefreshing] = useState(false);
   const [nicknameModalVisible, setNicknameModalVisible] = useState(false);
   const [savingNickname, setSavingNickname] = useState(false);
@@ -191,6 +191,15 @@ export function ProfileScreen({ navigation }: any) {
               <Text style={styles.statNumber}>{stats.participatedEvents}</Text>
               <Text style={styles.statLabel}>参与同游</Text>
             </View>
+            {stats.successRate != null && (
+              <>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{stats.successRate}%</Text>
+                  <Text style={styles.statLabel}>发起成功率</Text>
+                </View>
+              </>
+            )}
           </View>
         </View>
 

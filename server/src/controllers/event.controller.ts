@@ -12,6 +12,20 @@ import { getIO } from "../socket";
 import { logger } from "../utils/logger";
 
 /**
+ * 计算发起人的活动成功率：finished / (finished + cancelled)
+ * recruiting/waiting/ongoing 不计入分母（尚未有结果）
+ */
+async function computeHostStats(hostId: any) {
+  const [finished, cancelled] = await Promise.all([
+    Event.countDocuments({ hostId, status: ActivityStatus.FINISHED }),
+    Event.countDocuments({ hostId, status: ActivityStatus.CANCELLED }),
+  ]);
+  const total = finished + cancelled;
+  const successRate = total > 0 ? Math.round((finished / total) * 100) : null;
+  return { finished, cancelled, successRate };
+}
+
+/**
  * GET /api/v1/events
  * 活动广场接口：支持状态/类型/关键词筛选
  */
@@ -171,6 +185,8 @@ export async function getEventDetail(req: AuthRequest, res: Response): Promise<v
       status: { $in: [ParticipantStatus.ACCEPTED, ParticipantStatus.APPLIED] },
     }).populate("userId", "nickname avatar userId");
 
+    const hostStats = await computeHostStats(event.hostId);
+
     res.json({
       success: true,
       data: {
@@ -178,6 +194,7 @@ export async function getEventDetail(req: AuthRequest, res: Response): Promise<v
         myRole: participant?.role || null,
         myStatus: participant?.status || null,
         participants,
+        hostStats,
       },
     });
   } catch (error: any) {

@@ -20,6 +20,7 @@ export function EventDetailScreen({ route, navigation }: any) {
   const [applicants, setApplicants] = useState<any[]>([]);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [myStatus, setMyStatus] = useState<string | null>(null);
+  const [hostStats, setHostStats] = useState<{ finished: number; cancelled: number; successRate: number | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showStopModal, setShowStopModal] = useState(false);
@@ -44,6 +45,7 @@ export function EventDetailScreen({ route, navigation }: any) {
         setApplicants(all.filter((p: any) => p.status === "applied"));
         setMyRole(res.data.myRole);
         setMyStatus(res.data.myStatus);
+        setHostStats(res.data.hostStats || null);
       }
     } catch {} finally { setLoading(false); setRefreshing(false); }
   }, [eventId]);
@@ -133,6 +135,7 @@ export function EventDetailScreen({ route, navigation }: any) {
           <InfoRow label="👥 人数" value={`${event.currentParticipants || 1} / ${event.capacity}`} />
           <InfoRow label="📍 校区" value={event.campus === "gulou" ? "鼓楼校区" : event.campus === "xianlin" ? "仙林校区" : event.campus === "suzhou" ? "苏州校区" : event.campus} />
           <InfoRow label="📌 地点" value={event.locationText} />
+          {hostStats?.successRate != null && <InfoRow label="🏆 发起人成功率" value={`${hostStats.successRate}% (${hostStats.finished}/${hostStats.finished + hostStats.cancelled})`} />}
           {event.description ? <InfoRow label="📝 说明" value={event.description} /> : null}
         </View>
 

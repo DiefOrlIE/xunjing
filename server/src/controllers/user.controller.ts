@@ -7,6 +7,8 @@ import { Friendship } from "../models/Friendship";
 import { Message } from "../models/Message";
 import { Notification } from "../models/Notification";
 import { ChestOpenLog } from "../models/ChestOpenLog";
+import { Event } from "../models/Event";
+import { ActivityStatus } from "../config/constants";
 
 /**
  * GET /api/v1/user/:userId
@@ -86,12 +88,21 @@ export async function getStats(req: AuthRequest, res: Response): Promise<void> {
     const collections = await UserCollection.find({ userId, count: { $gt: 0 } });
     const totalCollections = collections.reduce((sum, c) => sum + c.count, 0);
 
+    // 发起活动成功率：finished / (finished + cancelled)，尚未有结果的招募中/进行中活动不计入
+    const [hostedFinished, hostedCancelled] = await Promise.all([
+      Event.countDocuments({ hostId: userId, status: ActivityStatus.FINISHED }),
+      Event.countDocuments({ hostId: userId, status: ActivityStatus.CANCELLED }),
+    ]);
+    const hostedTotal = hostedFinished + hostedCancelled;
+    const successRate = hostedTotal > 0 ? Math.round((hostedFinished / hostedTotal) * 100) : null;
+
     res.json({
       success: true,
       data: {
         totalCollections,
         hostedEvents: user.stats.hostedEvents,
         participatedEvents: user.stats.participatedEvents,
+        successRate,
       },
     });
   } catch (error: any) {

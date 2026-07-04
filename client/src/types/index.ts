@@ -13,6 +13,7 @@ export interface UserStats {
   totalCollections: number;
   hostedEvents: number;
   participatedEvents: number;
+  successRate?: number | null;
 }
 
 export interface PublicUser {
