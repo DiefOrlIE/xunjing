@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator, RefreshControl, TextInput, Modal,
+  Alert, ActivityIndicator, RefreshControl, TextInput, Modal, Image, Platform,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { Avatar } from "../../components/Avatar";
 import { ConfirmModal } from "../../components/ConfirmModal";
@@ -10,7 +12,9 @@ import { ACTIVITY_STATUS_LABELS, PARTICIPANT_STATUS_LABELS } from "../../utils/c
 import { getEventDetail, stopRecruiting, cancelEvent, exitEvent, applyToEvent } from "../../services/event.api";
 import { sendFriendRequest } from "../../services/friend.api";
 import { submitReport } from "../../services/report.api";
-import api from "../../services/api";
+import { getReviews, submitReview, EventReviewItem } from "../../services/eventReview.api";
+import { getMemories, submitMemory, uploadMemoryImage, EventMemoryItem } from "../../services/eventMemory.api";
+import api, { fixImageUrl } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 
 export function EventDetailScreen({ route, navigation }: any) {
@@ -31,6 +35,18 @@ export function EventDetailScreen({ route, navigation }: any) {
   const [reportTarget, setReportTarget] = useState<{ type: "user" | "event"; id: string; label: string } | null>(null);
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  // 活动评价
+  const [reviews, setReviews] = useState<EventReviewItem[]>([]);
+  const [reviewAvg, setReviewAvg] = useState(0);
+  const [myRating, setMyRating] = useState(0);
+  const [myComment, setMyComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  // 共同记忆墙
+  const [memories, setMemories] = useState<EventMemoryItem[]>([]);
+  const [memText, setMemText] = useState("");
+  const [memImageUrl, setMemImageUrl] = useState("");
+  const [memUploading, setMemUploading] = useState(false);
+  const [memSubmitting, setMemSubmitting] = useState(false);
 
   const isHost = myRole === "host";
   const statusLabel = event ? ACTIVITY_STATUS_LABELS[event.status] || event.status : "";
@@ -54,9 +70,92 @@ export function EventDetailScreen({ route, navigation }: any) {
     } catch {} finally { setLoading(false); setRefreshing(false); }
   }, [eventId]);
 
-  useEffect(() => { fetchDetail(); }, [fetchDetail]);
+  const fetchReviews = useCallback(async () => {
+    try {
+      const res = await getReviews(eventId);
+      if (res.success && res.data) {
+        setReviews(res.data.reviews || []);
+        setReviewAvg(res.data.average || 0);
+        if (res.data.myReview) {
+          setMyRating(res.data.myReview.rating);
+          setMyComment(res.data.myReview.comment || "");
+        }
+      }
+    } catch {}
+  }, [eventId]);
 
-  const onRefresh = () => { setRefreshing(true); fetchDetail(); };
+  const canMemory = myRole === "host" || myStatus === "accepted";
+  const memoryVisible = canMemory && (event?.status === "ongoing" || event?.status === "finished");
+
+  const fetchMemories = useCallback(async () => {
+    try {
+      const res = await getMemories(eventId);
+      if (res.success && res.data) setMemories(res.data.memories || []);
+    } catch {}
+  }, [eventId]);
+
+  useEffect(() => { fetchDetail(); }, [fetchDetail]);
+  useEffect(() => { if (event?.status === "finished") fetchReviews(); }, [event?.status, fetchReviews]);
+  useEffect(() => { if (memoryVisible) fetchMemories(); }, [memoryVisible, fetchMemories]);
+
+  const onRefresh = () => {
+    setRefreshing(true); fetchDetail();
+    if (event?.status === "finished") fetchReviews();
+    if (memoryVisible) fetchMemories();
+  };
+
+  const handlePickMemoryImage = async () => {
+    setMemUploading(true);
+    try {
+      if (Platform.OS === "web") {
+        const url = await new Promise<string>((resolve, reject) => {
+          const input = document.createElement("input"); input.type = "file"; input.accept = "image/*";
+          input.onchange = async (e: any) => {
+            const file = e.target?.files?.[0]; if (!file) { reject(new Error("cancel")); return; }
+            const form = new FormData(); form.append("image", file);
+            try { const res = await uploadMemoryImage(form as any); resolve((res as any)?.data?.url || ""); }
+            catch (err) { reject(err); }
+          };
+          input.click();
+        });
+        if (url) setMemImageUrl(url);
+      } else {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) { Alert.alert("提示", "需要相册权限"); return; }
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
+        if (result.canceled || !result.assets?.[0]) return;
+        const uri = result.assets[0].uri;
+        const ext = uri.split(".").pop() || "jpg";
+        const form = new FormData();
+        form.append("image", { uri, name: `memory.${ext}`, type: `image/${ext === "png" ? "png" : "jpeg"}` } as any);
+        const res = await uploadMemoryImage(form as any);
+        if ((res as any)?.success) setMemImageUrl((res as any).data.url);
+      }
+    } catch (e: any) { if (e?.message !== "cancel") Alert.alert("失败", "图片上传失败"); }
+    finally { setMemUploading(false); }
+  };
+
+  const handleSubmitMemory = async () => {
+    if (!memText.trim() && !memImageUrl) { Alert.alert("提示", "写点文字或加张图片吧"); return; }
+    setMemSubmitting(true);
+    try {
+      await submitMemory(eventId, memText.trim(), memImageUrl);
+      setMemText(""); setMemImageUrl("");
+      fetchMemories();
+    } catch (e: any) { Alert.alert("失败", e?.error || "发布失败"); }
+    finally { setMemSubmitting(false); }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!myRating) { Alert.alert("提示", "请先选择评分"); return; }
+    setReviewSubmitting(true);
+    try {
+      await submitReview(eventId, myRating, myComment.trim());
+      Alert.alert("✅", "评价已提交");
+      fetchReviews();
+    } catch (e: any) { Alert.alert("失败", e?.error || "提交失败"); }
+    finally { setReviewSubmitting(false); }
+  };
 
   const handleStop = async () => {
     setActionLoading(true);
@@ -192,6 +291,122 @@ export function EventDetailScreen({ route, navigation }: any) {
           })}
         </View>
 
+        {/* 活动评价（仅活动结束后） */}
+        {event.status === "finished" && (
+          <View style={styles.sectionCard}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.md }}>
+              <Text style={styles.sectionTitle}>⭐ 活动评价 ({reviews.length})</Text>
+              {reviews.length > 0 && <Text style={styles.reviewAvgText}>平均 {reviewAvg.toFixed(1)} 分</Text>}
+            </View>
+
+            {/* 我的评价（仅参与者可评） */}
+            {isParticipant && (
+              <View style={styles.myReviewBox}>
+                <Text style={styles.myReviewLabel}>{myRating ? "修改我的评价" : "为这次活动打个分吧"}</Text>
+                <StarRow value={myRating} onChange={setMyRating} />
+                <TextInput
+                  style={styles.reviewCommentInput}
+                  placeholder="说说这次活动怎么样...（选填）"
+                  placeholderTextColor={colors.textHint}
+                  value={myComment}
+                  onChangeText={setMyComment}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity
+                  style={[styles.reviewSubmitBtn, reviewSubmitting && { opacity: 0.6 }]}
+                  onPress={handleSubmitReview}
+                  disabled={reviewSubmitting}
+                >
+                  <Text style={styles.reviewSubmitText}>{reviewSubmitting ? "提交中..." : "提交评价"}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* 全部评价 */}
+            {reviews.length === 0 ? (
+              <Text style={styles.reviewEmpty}>还没有人评价，来做第一个吧～</Text>
+            ) : (
+              reviews.map((rv, i) => {
+                const ru = rv.userId && typeof rv.userId === "object" ? rv.userId : ({} as any);
+                return (
+                  <View key={rv._id || i} style={styles.reviewRow}>
+                    <Avatar uri={ru?.avatar || undefined} size={32} emoji={ru?.nickname?.charAt(0) || "?"} />
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                        <Text style={styles.reviewName}>{ru?.nickname || "用户"}</Text>
+                        <Text style={styles.reviewStars}>{"★".repeat(rv.rating)}{"☆".repeat(5 - rv.rating)}</Text>
+                      </View>
+                      {rv.comment ? <Text style={styles.reviewComment}>{rv.comment}</Text> : null}
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        )}
+
+        {/* 共同记忆墙（参与者，活动进行中/已结束） */}
+        {memoryVisible && (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>📷 共同记忆 ({memories.length})</Text>
+
+            {/* 发布区 */}
+            <View style={styles.memInputBox}>
+              <TextInput
+                style={styles.memTextInput}
+                placeholder="分享这次活动的瞬间...（图文任填其一）"
+                placeholderTextColor={colors.textHint}
+                value={memText}
+                onChangeText={setMemText}
+                multiline
+                maxLength={1000}
+              />
+              {memImageUrl ? (
+                <View style={styles.memPreviewWrap}>
+                  <Image source={{ uri: fixImageUrl(memImageUrl) }} style={styles.memPreviewImg} resizeMode="cover" />
+                  <TouchableOpacity style={styles.memPreviewRemove} onPress={() => setMemImageUrl("")}>
+                    <Text style={{ color: "#FFF", fontWeight: "700" }}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+              <View style={styles.memActions}>
+                <TouchableOpacity style={styles.memImgBtn} onPress={handlePickMemoryImage} disabled={memUploading}>
+                  <Text style={styles.memImgBtnText}>{memUploading ? "上传中..." : "🖼️ 加图片"}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.memSendBtn, memSubmitting && { opacity: 0.6 }]}
+                  onPress={handleSubmitMemory}
+                  disabled={memSubmitting}
+                >
+                  <Text style={styles.memSendText}>{memSubmitting ? "发布中..." : "发布"}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* 记忆列表 */}
+            {memories.length === 0 ? (
+              <Text style={styles.reviewEmpty}>还没有记忆，留下第一张照片吧～</Text>
+            ) : (
+              memories.map((m, i) => {
+                const mu = m.userId && typeof m.userId === "object" ? m.userId : ({} as any);
+                return (
+                  <View key={m._id || i} style={styles.memRow}>
+                    <Avatar uri={mu?.avatar || undefined} size={32} emoji={mu?.nickname?.charAt(0) || "?"} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.reviewName}>{mu?.nickname || "用户"}</Text>
+                      {m.content ? <Text style={styles.memContent}>{m.content}</Text> : null}
+                      {m.imageUrl ? (
+                        <Image source={{ uri: fixImageUrl(m.imageUrl) }} style={styles.memImage} resizeMode="cover" />
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        )}
+
         {/* 待审核申请 */}
         {isHost && event.status === "recruiting" && applicants.length > 0 && (
           <View style={styles.sectionCard}>
@@ -318,6 +533,20 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function StarRow({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <View style={{ flexDirection: "row", marginVertical: spacing.sm }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <TouchableOpacity key={n} onPress={() => onChange(n)} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}>
+          <Text style={{ fontSize: 30, marginRight: 4, color: n <= value ? "#F5B301" : colors.border }}>
+            {n <= value ? "★" : "☆"}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
 const irStyles = StyleSheet.create({
   row: { flexDirection: "row", paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.divider },
   label: { ...typography.caption, color: colors.textSecondary, width: 70, fontWeight: "600" },
@@ -382,4 +611,39 @@ const styles = StyleSheet.create({
   reportCancelText: { ...typography.button, color: colors.textSecondary },
   reportSubmitBtn: { flex: 1, backgroundColor: colors.error, borderRadius: borderRadius.lg, paddingVertical: spacing.md, alignItems: "center" },
   reportSubmitText: { ...typography.button, color: "#FFF" },
+  // 活动评价
+  reviewAvgText: { ...typography.caption, color: "#F5B301", fontWeight: "700" },
+  myReviewBox: { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.md },
+  myReviewLabel: { ...typography.caption, color: colors.textSecondary, fontWeight: "600" },
+  reviewCommentInput: {
+    backgroundColor: colors.surface, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border,
+    padding: spacing.md, ...typography.body, color: colors.textPrimary, minHeight: 56, marginBottom: spacing.sm,
+  },
+  reviewSubmitBtn: { backgroundColor: colors.primary, borderRadius: borderRadius.lg, paddingVertical: spacing.sm, alignItems: "center" },
+  reviewSubmitText: { ...typography.button, color: "#FFF" },
+  reviewEmpty: { ...typography.caption, color: colors.textHint, textAlign: "center", paddingVertical: spacing.md },
+  reviewRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider },
+  reviewName: { ...typography.body, color: colors.textPrimary, fontWeight: "600" },
+  reviewStars: { fontSize: 13, color: "#F5B301" },
+  reviewComment: { ...typography.body, color: colors.textSecondary, marginTop: 2, fontSize: 14 },
+  // 共同记忆墙
+  memInputBox: { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.md },
+  memTextInput: {
+    backgroundColor: colors.surface, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border,
+    padding: spacing.md, ...typography.body, color: colors.textPrimary, minHeight: 56, marginBottom: spacing.sm,
+  },
+  memPreviewWrap: { position: "relative", marginBottom: spacing.sm, alignSelf: "flex-start" },
+  memPreviewImg: { width: 100, height: 100, borderRadius: borderRadius.md },
+  memPreviewRemove: {
+    position: "absolute", top: -8, right: -8, width: 22, height: 22, borderRadius: 11,
+    backgroundColor: colors.error, alignItems: "center", justifyContent: "center",
+  },
+  memActions: { flexDirection: "row", gap: spacing.md, alignItems: "center" },
+  memImgBtn: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.border },
+  memImgBtnText: { ...typography.caption, color: colors.textSecondary, fontWeight: "600" },
+  memSendBtn: { flex: 1, backgroundColor: colors.primary, borderRadius: borderRadius.lg, paddingVertical: spacing.sm, alignItems: "center" },
+  memSendText: { ...typography.button, color: "#FFF" },
+  memRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider },
+  memContent: { ...typography.body, color: colors.textPrimary, marginTop: 2, fontSize: 14 },
+  memImage: { width: "100%", height: 180, borderRadius: borderRadius.md, marginTop: spacing.sm, backgroundColor: colors.background },
 });

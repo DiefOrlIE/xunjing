@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { createEvent, getMyEvents, getEventDetail, applyToEvent, stopRecruiting, cancelEvent, exitEvent, acceptApplication, rejectApplication, listEvents } from "../controllers/event.controller";
+import { createReview, listReviews } from "../controllers/eventReview.controller";
+import { createMemory, listMemories } from "../controllers/eventMemory.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { validate, schemas } from "../middleware/validate.middleware";
 
@@ -35,5 +37,13 @@ router.post("/:id/applications/:userId/accept", acceptApplication);
 
 // POST /api/v1/events/:id/applications/:userId/reject
 router.post("/:id/applications/:userId/reject", rejectApplication);
+
+// 活动评价（活动结束后，参与者可评）
+router.get("/:id/reviews", listReviews);
+router.post("/:id/review", createReview);
+
+// 共同记忆墙（仅参与者可见/可发）
+router.get("/:id/memories", listMemories);
+router.post("/:id/memory", createMemory);
 
 export default router;

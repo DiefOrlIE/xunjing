@@ -75,6 +75,35 @@ export function uploadItemImage(req: AuthRequest, res: Response): void {
   });
 }
 
+// ── 记忆墙图片（登录用户即可，无需管理员）──
+const memoryStorage = multer.diskStorage({
+  destination: path.join(UPLOAD_DIR, "memories"),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".png";
+    cb(null, `${uuidv4()}${ext}`);
+  },
+});
+const memoryUpload = multer({
+  storage: memoryStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
+    cb(null, allowed.includes(path.extname(file.originalname).toLowerCase()));
+  },
+}).single("image");
+
+export function uploadMemoryImage(req: AuthRequest, res: Response): void {
+  memoryUpload(req as any, res as any, async (err: any) => {
+    if (err) {
+      res.status(400).json({ success: false, error: err.code === "LIMIT_FILE_SIZE" ? "文件不能超过10MB" : "上传失败" });
+      return;
+    }
+    if (!req.file) { res.status(400).json({ success: false, error: "请选择图片" }); return; }
+    const url = `/uploads/memories/${req.file.filename}`;
+    res.json({ success: true, data: { url } });
+  });
+}
+
 const avatarStorage = multer.diskStorage({
   destination: path.join(UPLOAD_DIR, "avatars"),
   filename: (_req, file, cb) => {
