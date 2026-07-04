@@ -30,6 +30,7 @@ import adminRoutes from "./routes/admin.routes";
 import uploadRoutes from "./routes/upload.routes";
 import geoRoutes from "./routes/geo.routes";
 import feedbackRoutes from "./routes/feedback.routes";
+import reportRoutes from "./routes/report.routes";
 import { getUserCollections, deleteUserCollection } from "./controllers/item.controller";
 import { authMiddleware } from "./middleware/auth.middleware";
 
@@ -96,6 +97,7 @@ app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/upload", uploadRoutes);
 app.use("/api/v1/geo", geoRoutes);
 app.use("/api/v1/feedback", feedbackRoutes);
+app.use("/api/v1/reports", reportRoutes);
 
 // ── 网页静态文件（挂到3000端口，供流量访问） ──
 const webDir = path.resolve(__dirname, "../webdist");

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator, RefreshControl,
+  Alert, ActivityIndicator, RefreshControl, TextInput, Modal,
 } from "react-native";
 import { colors, typography, spacing, borderRadius, HAND } from "../../theme";
 import { Avatar } from "../../components/Avatar";
@@ -9,6 +9,7 @@ import { ConfirmModal } from "../../components/ConfirmModal";
 import { ACTIVITY_STATUS_LABELS, PARTICIPANT_STATUS_LABELS } from "../../utils/constants";
 import { getEventDetail, stopRecruiting, cancelEvent, exitEvent, applyToEvent } from "../../services/event.api";
 import { sendFriendRequest } from "../../services/friend.api";
+import { submitReport } from "../../services/report.api";
 import api from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 
@@ -27,6 +28,9 @@ export function EventDetailScreen({ route, navigation }: any) {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: "user" | "event"; id: string; label: string } | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const isHost = myRole === "host";
   const statusLabel = event ? ACTIVITY_STATUS_LABELS[event.status] || event.status : "";
@@ -93,6 +97,17 @@ export function EventDetailScreen({ route, navigation }: any) {
 
   const isParticipant = myRole === "host" || myStatus === "accepted" || myStatus === "applied";
 
+  const handleSubmitReport = async () => {
+    if (!reportTarget || !reportReason.trim()) { Alert.alert("提示", "请填写举报原因"); return; }
+    setReportSubmitting(true);
+    try {
+      await submitReport(reportTarget.type, reportTarget.id, reportReason.trim());
+      Alert.alert("✅", "举报已提交，我们会尽快处理");
+      setReportTarget(null); setReportReason("");
+    } catch (e: any) { Alert.alert("失败", e?.error || "提交失败"); }
+    finally { setReportSubmitting(false); }
+  };
+
   if (loading) {
     return <View style={styles.loadingContainer}><ActivityIndicator size="large" color={colors.primary} /></View>;
   }
@@ -107,7 +122,9 @@ export function EventDetailScreen({ route, navigation }: any) {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backText}>← 返回</Text></TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>活动详情</Text>
-        <View style={{ width: 50 }} />
+        <TouchableOpacity onPress={() => setReportTarget({ type: "event", id: eventId, label: "该活动" })}>
+          <Text style={styles.backText}>🚩 举报</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -162,6 +179,11 @@ export function EventDetailScreen({ route, navigation }: any) {
                       catch (e: any) { Alert.alert("失败", e?.error || "发送失败"); }
                     }}>
                       <Text style={styles.participantActionText}>➕</Text>
+                    </TouchableOpacity>
+                  )}
+                  {numericId !== user?.userId && pu?._id && (
+                    <TouchableOpacity style={styles.participantAction} onPress={() => setReportTarget({ type: "user", id: pu._id, label: pu?.nickname || "该用户" })}>
+                      <Text style={styles.participantActionText}>🚩</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -258,6 +280,31 @@ export function EventDetailScreen({ route, navigation }: any) {
         onConfirm={handleExit}
         onCancel={() => setShowExitModal(false)}
       />
+
+      {/* 举报弹窗 */}
+      <Modal visible={!!reportTarget} transparent animationType="fade" onRequestClose={() => setReportTarget(null)}>
+        <View style={styles.reportOverlay}>
+          <View style={styles.reportCard}>
+            <Text style={styles.reportTitle}>🚩 举报{reportTarget?.label}</Text>
+            <TextInput
+              style={styles.reportInput}
+              placeholder="请填写举报原因..."
+              placeholderTextColor={colors.textHint}
+              value={reportReason}
+              onChangeText={setReportReason}
+              multiline
+            />
+            <View style={styles.reportBtns}>
+              <TouchableOpacity style={styles.reportCancelBtn} onPress={() => { setReportTarget(null); setReportReason(""); }}>
+                <Text style={styles.reportCancelText}>取消</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.reportSubmitBtn, reportSubmitting && { opacity: 0.6 }]} onPress={handleSubmitReport} disabled={reportSubmitting}>
+                <Text style={styles.reportSubmitText}>{reportSubmitting ? "提交中..." : "提交举报"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -322,4 +369,17 @@ const styles = StyleSheet.create({
     alignItems: "center", shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
   },
   chatEntryText: { ...typography.button, color: "#FFF", fontSize: 17 },
+  reportOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", padding: spacing.xl },
+  reportCard: { backgroundColor: colors.surface, borderRadius: borderRadius.xl, padding: spacing.xl },
+  reportTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: spacing.lg },
+  reportInput: {
+    backgroundColor: colors.background, borderRadius: borderRadius.md, borderWidth: 1,
+    borderColor: colors.border, padding: spacing.md, ...typography.body, color: colors.textPrimary,
+    minHeight: 80, marginBottom: spacing.lg,
+  },
+  reportBtns: { flexDirection: "row", gap: spacing.md },
+  reportCancelBtn: { flex: 1, backgroundColor: colors.surfaceAlt, borderRadius: borderRadius.lg, paddingVertical: spacing.md, alignItems: "center" },
+  reportCancelText: { ...typography.button, color: colors.textSecondary },
+  reportSubmitBtn: { flex: 1, backgroundColor: colors.error, borderRadius: borderRadius.lg, paddingVertical: spacing.md, alignItems: "center" },
+  reportSubmitText: { ...typography.button, color: "#FFF" },
 });

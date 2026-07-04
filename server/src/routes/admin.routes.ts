@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getDashboard, createChest, getCampusBounds, updateCampusBounds, listChests, removeChest, giftItem, refreshAllChests, getChestConfig, updateChestConfig, getDropConfig, updateDropConfig, getUserItemCounts } from "../controllers/admin.controller";
 import { listFeedback, resolveFeedback } from "../controllers/feedback.controller";
+import { listReports, resolveReport, banUser } from "../controllers/report.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { adminMiddleware } from "../middleware/admin.middleware";
 
@@ -23,5 +24,8 @@ router.get("/campus-bounds", getCampusBounds);
 router.put("/campus-bounds", updateCampusBounds);
 router.get("/feedback", listFeedback);
 router.put("/feedback/:id", resolveFeedback);
+router.get("/reports", listReports);
+router.put("/reports/:id", resolveReport);
+router.patch("/users/:id/ban", banUser);
 
 export default router;

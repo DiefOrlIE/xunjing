@@ -12,6 +12,9 @@ export interface IUser extends Document {
     hostedEvents: number;
     participatedEvents: number;
   };
+  banned: boolean;
+  banReason: string;
+  bannedUntil: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +33,9 @@ const UserSchema = new Schema<IUser>(
       hostedEvents: { type: Number, default: 0 },
       participatedEvents: { type: Number, default: 0 },
     },
+    banned: { type: Boolean, default: false },
+    banReason: { type: String, default: "" },
+    bannedUntil: { type: Date, default: null },
   },
   {
     timestamps: true,

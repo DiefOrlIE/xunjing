@@ -15,13 +15,14 @@ import {
   getDashboard, giftItem, getUserItemCounts,
 } from "../../services/admin.api";
 import { getAllFeedback, resolveFeedback, FeedbackItem } from "../../services/feedback.api";
+import { getAllReports, resolveReport, banUser, ReportItem } from "../../services/report.api";
 import api, { fixImageUrl } from "../../services/api";
 import { ItemDetail, EventTypeData } from "../../types";
 
 const RARITY_OPTIONS = ["典藏", "神秘", "限定", "高端", "普通", "常见"];
 
 export function AdminPanelScreen({ navigation }: any) {
-  const [tab, setTab] = useState<"items" | "eventTypes" | "dashboard" | "chests" | "gift" | "feedback">("dashboard");
+  const [tab, setTab] = useState<"items" | "eventTypes" | "dashboard" | "chests" | "gift" | "feedback" | "reports">("dashboard");
   const [loading, setLoading] = useState(true);
 
   // 反馈
@@ -30,6 +31,14 @@ export function AdminPanelScreen({ navigation }: any) {
   const [feedbackFilter, setFeedbackFilter] = useState<"pending" | "resolved" | "all">("pending");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
+
+  // 举报
+  const [reports, setReports] = useState<ReportItem[]>([]);
+  const [reportFilter, setReportFilter] = useState<"pending" | "resolved" | "dismissed" | "all">("pending");
+  const [banningReportId, setBanningReportId] = useState<string | null>(null);
+  const [banDays, setBanDays] = useState("0");
+  const [banReasonInput, setBanReasonInput] = useState("");
+  const [banSubmitting, setBanSubmitting] = useState(false);
 
   const [dashboard, setDashboard] = useState({ totalUsers: 0, activeChests: 0, activeEvents: 0 });
   const [chestType, setChestType] = useState("normal");
@@ -147,8 +156,13 @@ export function AdminPanelScreen({ navigation }: any) {
           setFeedbackTotal(fbRes.data.total);
         }
       } catch {}
+      // 拉取举报
+      try {
+        const rpRes = await getAllReports(1, 100, reportFilter === "all" ? undefined : reportFilter);
+        if (rpRes.success && rpRes.data) setReports(rpRes.data.items);
+      } catch {}
     } catch {} finally { setLoading(false); }
-  }, [feedbackFilter]);
+  }, [feedbackFilter, reportFilter]);
 
   // 仅刷新藏品列表（搜索用，避免全量刷新）
   const fetchItems = useCallback(async (kw: string, rarity: string | null) => {
@@ -269,6 +283,23 @@ export function AdminPanelScreen({ navigation }: any) {
   };
 
 
+  const handleResolveReport = async (id: string, status: "resolved" | "dismissed") => {
+    try { await resolveReport(id, { status }); fetchAll(); }
+    catch (e: any) { Alert.alert("失败", e?.error || ""); }
+  };
+
+  const handleBanUser = async (userMongoId: string) => {
+    setBanSubmitting(true);
+    try {
+      const days = parseInt(banDays) || 0;
+      await banUser(userMongoId, { banned: true, banReason: banReasonInput.trim(), banDays: days });
+      Alert.alert("✅", days > 0 ? `已封禁 ${days} 天` : "已永久封禁");
+      setBanningReportId(null); setBanDays("0"); setBanReasonInput("");
+      fetchAll();
+    } catch (e: any) { Alert.alert("失败", e?.error || "封禁失败"); }
+    finally { setBanSubmitting(false); }
+  };
+
   const isItemForm = editingItem !== null || (editingType === null && tab === "items");
   const isTypeForm = editingType !== null || (editingItem === null && tab === "eventTypes");
 
@@ -293,6 +324,7 @@ export function AdminPanelScreen({ navigation }: any) {
           { key: "eventTypes" as const, label: "🏷️ 类型" },
           { key: "chests" as const, label: "📦 宝箱" },
           { key: "feedback" as const, label: "📮 反馈" },
+          { key: "reports" as const, label: "🚩 举报" },
         ].map((t) => (
           <TouchableOpacity key={t.key} style={[styles.tab, tab === t.key && styles.tabActive]} onPress={() => setTab(t.key)}>
             <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]}>{t.label}</Text>
@@ -1012,6 +1044,118 @@ export function AdminPanelScreen({ navigation }: any) {
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <EmptyState emoji="📭" title="暂无反馈" subtitle={feedbackFilter === "pending" ? "所有反馈都已处理" : "还没有用户提交反馈"} />
+            }
+          />
+        </View>
+      )}
+
+      {/* 举报列表 */}
+      {tab === "reports" && (
+        <View style={{ flex: 1 }}>
+          <View style={styles.feedbackFilterRow}>
+            {(["pending", "resolved", "dismissed", "all"] as const).map((f) => (
+              <TouchableOpacity
+                key={f}
+                style={[styles.feedbackFilterBtn, reportFilter === f && styles.feedbackFilterBtnActive]}
+                onPress={() => setReportFilter(f)}
+              >
+                <Text style={[styles.feedbackFilterText, reportFilter === f && styles.feedbackFilterTextActive]}>
+                  {f === "pending" ? "⏳ 待处理" : f === "resolved" ? "✅ 已处理" : f === "dismissed" ? "🚫 已驳回" : "📋 全部"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <FlatList
+            data={reports}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item }) => {
+              const reporter = item.reporterId;
+              const isBanning = banningReportId === item._id;
+              return (
+                <View style={[styles.feedbackCard, item.status !== "pending" && { opacity: 0.75 }]}>
+                  <View style={styles.feedbackCardHeader}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                      <Text style={styles.feedbackUserIcon}>🚩</Text>
+                      <View>
+                        <Text style={styles.feedbackUserName}>{reporter?.nickname || "未知用户"} 举报了 {item.targetType === "user" ? "用户" : "活动"}</Text>
+                        <Text style={styles.feedbackUserMeta}>目标ID: {item.targetId}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.fbStatusBadge, { backgroundColor: item.status === "pending" ? colors.warning + "20" : item.status === "resolved" ? colors.success + "20" : colors.error + "20" }]}>
+                      <Text style={[styles.fbStatusText, { color: item.status === "pending" ? colors.warning : item.status === "resolved" ? colors.success : colors.error }]}>
+                        {item.status === "pending" ? "待处理" : item.status === "resolved" ? "已处理" : "已驳回"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.feedbackContent}>{item.reason}</Text>
+
+                  {item.status === "pending" && (
+                    <>
+                      {isBanning ? (
+                        <View style={styles.fbReplyInputWrap}>
+                          <TextInput
+                            style={styles.fbReplyInput}
+                            placeholder="封禁原因..."
+                            placeholderTextColor={colors.textHint}
+                            value={banReasonInput}
+                            onChangeText={setBanReasonInput}
+                          />
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm }}>
+                            <Text style={{ ...typography.caption, color: colors.textSecondary }}>封禁天数（0=永久）</Text>
+                            <TextInput
+                              style={[styles.formInput, { width: 70, marginBottom: 0, paddingVertical: 4 }]}
+                              value={banDays}
+                              onChangeText={setBanDays}
+                              keyboardType="number-pad"
+                            />
+                          </View>
+                          <View style={styles.fbReplyBtns}>
+                            <TouchableOpacity style={styles.fbCancelBtn} onPress={() => { setBanningReportId(null); setBanDays("0"); setBanReasonInput(""); }}>
+                              <Text style={styles.fbCancelBtnText}>取消</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.fbResolveSmallBtn, { backgroundColor: colors.error }, banSubmitting && { opacity: 0.6 }]}
+                              onPress={() => handleBanUser(item.targetId)}
+                              disabled={banSubmitting}
+                            >
+                              <Text style={styles.fbResolveSmallText}>{banSubmitting ? "处理中..." : "确认封禁"}</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                          {item.targetType === "user" && (
+                            <TouchableOpacity style={[styles.fbResolveBtn, { flex: 1, borderColor: colors.error + "50" }]} onPress={() => setBanningReportId(item._id)}>
+                              <Text style={[styles.fbResolveBtnText, { color: colors.error }]}>🔒 封禁用户</Text>
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity style={[styles.fbResolveBtn, { flex: 1 }]} onPress={() => handleResolveReport(item._id, "resolved")}>
+                            <Text style={styles.fbResolveBtnText}>✅ 标记已处理</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={[styles.fbCancelBtn, { flex: 1 }]} onPress={() => handleResolveReport(item._id, "dismissed")}>
+                            <Text style={styles.fbCancelBtnText}>驳回</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </>
+                  )}
+
+                  {item.handledBy && (
+                    <Text style={styles.fbResolvedMeta}>
+                      由 {(item.handledBy as any)?.nickname || "管理员"} 处理于{" "}
+                      {item.handledAt
+                        ? new Date(item.handledAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+                        : ""}
+                    </Text>
+                  )}
+                </View>
+              );
+            }}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <EmptyState emoji="🚩" title="暂无举报" subtitle={reportFilter === "pending" ? "所有举报都已处理" : "还没有用户提交举报"} />
             }
           />
         </View>
